@@ -113,7 +113,10 @@ const BackupSettingsPage = () => {
         link.remove();
         window.URL.revokeObjectURL(url);
       } else {
-        setMessage({ type: "danger", text: result.error || "Lỗi khi tải file" });
+        setMessage({
+          type: "danger",
+          text: result.error || "Lỗi khi tải file",
+        });
       }
     } catch (error) {
       console.error("Download error:", error);

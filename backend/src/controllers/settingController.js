@@ -453,32 +453,12 @@ const createBackup = async (req, res) => {
       console.warn("Failed to cleanup temp file:", cleanupError.message);
     }
 
-    // Insert backup record. Some deployments may not have `download_url` column
-    // (migration may not be applied). Check INFORMATION_SCHEMA and insert
-    // conditionally to avoid ER_BAD_FIELD_ERROR.
-    let insertSql;
-    let insertParams;
-    try {
-      const [colRows] = await db.execute(
-        `SELECT COUNT(*) AS cnt FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'backups' AND COLUMN_NAME = 'download_url'`,
-        [dbConfig.database]
-      );
-      const hasDownloadUrl = Array.isArray(colRows) && colRows[0] && Number(colRows[0].cnt) > 0;
-
-      if (hasDownloadUrl) {
-        insertSql = `INSERT INTO backups (filename, file_path, file_size, backup_type, status, created_by, download_url) VALUES (?, ?, ?, 'manual', 'completed', ?, ?)`;
-        insertParams = [filename, storagePath, fileSize, userId, downloadUrl];
-      } else {
-        insertSql = `INSERT INTO backups (filename, file_path, file_size, backup_type, status, created_by) VALUES (?, ?, ?, 'manual', 'completed', ?)`;
-        insertParams = [filename, storagePath, fileSize, userId];
-      }
-    } catch (schemaCheckErr) {
-      // If INFORMATION_SCHEMA query fails for any reason, fallback to insert without download_url
-      insertSql = `INSERT INTO backups (filename, file_path, file_size, backup_type, status, created_by) VALUES (?, ?, ?, 'manual', 'completed', ?)`;
-      insertParams = [filename, storagePath, fileSize, userId];
-    }
-
-    const [result] = await db.execute(insertSql, insertParams);
+    // Insert backup record
+    const [result] = await db.execute(
+      `INSERT INTO backups (filename, file_path, file_size, backup_type, status, created_by, download_url)
+       VALUES (?, ?, ?, 'manual', 'completed', ?, ?)`,
+      [filename, storagePath, fileSize, userId, downloadUrl]
+    );
 
     res.json({
       success: true,
@@ -576,12 +556,10 @@ const restoreBackup = async (req, res) => {
     });
   } catch (error) {
     console.error("restoreBackup error:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Lỗi khi khôi phục backup: " + error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Lỗi khi khôi phục backup: " + error.message,
+    });
   }
 };
 
