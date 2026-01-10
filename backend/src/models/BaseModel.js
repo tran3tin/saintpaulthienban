@@ -1,4 +1,5 @@
 const pool = require("../config/database");
+const { convertPlaceholders } = require("../utils/queryAdapter");
 
 class BaseModel {
   constructor({ tableName, primaryKey = "id", softDeleteColumn = null } = {}) {
@@ -76,9 +77,9 @@ class BaseModel {
     const values = fields.map((field) => data[field]);
     const sql = `INSERT INTO ${this.tableName} (${fields.join(
       ", "
-    )}) VALUES (${placeholders})`;
-    const result = await this.executeQuery(sql, values);
-    return this.findById(result.insertId);
+    )}) VALUES (${placeholders}) RETURNING *`;
+    const rows = await this.executeQuery(sql, values);
+    return rows[0] || null;
   }
 
   async update(id, data = {}) {
@@ -113,27 +114,28 @@ class BaseModel {
 
     if (this.softDeleteColumn) {
       const sql = `UPDATE ${this.tableName} SET ${this.softDeleteColumn} = ? WHERE ${this.primaryKey} = ? AND ${this.softDeleteColumn} IS NULL`;
-      const result = await this.executeQuery(sql, [new Date(), id]);
-      return result.affectedRows > 0;
+      const rows = await this.executeQuery(sql, [new Date(), id]);
+      return rows.length > 0;
     }
 
     const sql = `DELETE FROM ${this.tableName} WHERE ${this.primaryKey} = ?`;
-    const result = await this.executeQuery(sql, [id]);
-    return result.affectedRows > 0;
+    const rows = await this.executeQuery(sql, [id]);
+    return rows.length > 0;
   }
 
   async executeQuery(sql, params = []) {
-    const connection = await pool.getConnection();
+    const { query: pgQuery, params: pgParams } = convertPlaceholders(sql, params);
+    const client = await pool.connect();
     try {
-      const [rows] = await connection.query(sql, params);
-      return rows;
+      const result = await client.query(pgQuery, pgParams);
+      return result.rows;
     } catch (error) {
       console.error(`[${this.tableName}] Query failed: ${error.message}`);
-      console.error(`[${this.tableName}] SQL: ${sql}`);
-      console.error(`[${this.tableName}] Params: ${JSON.stringify(params)}`);
+      console.error(`[${this.tableName}] SQL: ${pgQuery}`);
+      console.error(`[${this.tableName}] Params: ${JSON.stringify(pgParams)}`);
       throw error;
     } finally {
-      connection.release();
+      client.release();
     }
   }
 }
