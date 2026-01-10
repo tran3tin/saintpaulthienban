@@ -109,8 +109,8 @@ const createPost = async (req, res) => {
       category,
       summary: summary || null,
       content,
-      is_pinned: is_pinned === "true" || is_pinned === true ? 1 : 0,
-      is_important: is_important === "true" || is_important === true ? 1 : 0,
+      is_pinned: is_pinned === "true" || is_pinned === true,
+      is_important: is_important === "true" || is_important === true,
       tags: tags
         ? typeof tags === "string"
           ? tags
@@ -128,7 +128,7 @@ const createPost = async (req, res) => {
     return res.status(201).json({
       success: true,
       message: "Tạo bài đăng thành công",
-      data: { id: result.insertId },
+      data: { id: result?.id },
     });
   } catch (error) {
     console.error("createPost error:", error.message);
@@ -205,11 +205,11 @@ const updatePost = async (req, res) => {
     if (summary !== undefined) updateData.summary = summary;
     if (content !== undefined) updateData.content = content;
     if (is_pinned !== undefined) {
-      updateData.is_pinned = is_pinned === "true" || is_pinned === true ? 1 : 0;
+      updateData.is_pinned = is_pinned === "true" || is_pinned === true;
     }
     if (is_important !== undefined) {
       updateData.is_important =
-        is_important === "true" || is_important === true ? 1 : 0;
+        is_important === "true" || is_important === true;
     }
     if (tags !== undefined) {
       updateData.tags = tags

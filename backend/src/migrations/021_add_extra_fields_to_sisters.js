@@ -9,115 +9,66 @@ const up = async () => {
     console.log("Adding extra fields to sisters table...");
 
     // Add id_card fields
-    await connection
-      .query(
-        `
-      ALTER TABLE sisters 
-      ADD COLUMN IF NOT EXISTS id_card VARCHAR(20) NULL AFTER nationality
-    `
-      )
-      .catch(() => console.log("id_card column might already exist"));
-
-    await connection
-      .query(
-        `
-      ALTER TABLE sisters 
-      ADD COLUMN IF NOT EXISTS id_card_date DATE NULL AFTER id_card
-    `
-      )
-      .catch(() => console.log("id_card_date column might already exist"));
-
-    await connection
-      .query(
-        `
-      ALTER TABLE sisters 
-      ADD COLUMN IF NOT EXISTS id_card_place VARCHAR(150) NULL AFTER id_card_date
-    `
-      )
-      .catch(() => console.log("id_card_place column might already exist"));
+    await client.query(
+      `ALTER TABLE sisters ADD COLUMN IF NOT EXISTS id_card VARCHAR(20) NULL`
+    );
+    await client.query(
+      `ALTER TABLE sisters ADD COLUMN IF NOT EXISTS id_card_date DATE NULL`
+    );
+    await client.query(
+      `ALTER TABLE sisters ADD COLUMN IF NOT EXISTS id_card_place VARCHAR(150) NULL`
+    );
 
     // Add current_address
-    await connection
-      .query(
-        `
-      ALTER TABLE sisters 
-      ADD COLUMN IF NOT EXISTS current_address VARCHAR(255) NULL AFTER permanent_address
-    `
-      )
-      .catch(() => console.log("current_address column might already exist"));
+    await client.query(
+      `ALTER TABLE sisters ADD COLUMN IF NOT EXISTS current_address VARCHAR(255) NULL`
+    );
 
     // Add family-related fields
-    await connection
-      .query(
-        `
-      ALTER TABLE sisters 
-      ADD COLUMN IF NOT EXISTS father_occupation VARCHAR(100) NULL AFTER father_name
-    `
-      )
-      .catch(() => console.log("father_occupation column might already exist"));
-
-    await connection
-      .query(
-        `
-      ALTER TABLE sisters 
-      ADD COLUMN IF NOT EXISTS mother_occupation VARCHAR(100) NULL AFTER mother_name
-    `
-      )
-      .catch(() => console.log("mother_occupation column might already exist"));
-
-    await connection
-      .query(
-        `
-      ALTER TABLE sisters 
-      ADD COLUMN IF NOT EXISTS siblings_count INT NULL AFTER mother_occupation
-    `
-      )
-      .catch(() => console.log("siblings_count column might already exist"));
-
-    await connection
-      .query(
-        `
-      ALTER TABLE sisters 
-      ADD COLUMN IF NOT EXISTS family_address VARCHAR(255) NULL AFTER siblings_count
-    `
-      )
-      .catch(() => console.log("family_address column might already exist"));
+    await client.query(
+      `ALTER TABLE sisters ADD COLUMN IF NOT EXISTS father_occupation VARCHAR(100) NULL`
+    );
+    await client.query(
+      `ALTER TABLE sisters ADD COLUMN IF NOT EXISTS mother_occupation VARCHAR(100) NULL`
+    );
+    await client.query(
+      `ALTER TABLE sisters ADD COLUMN IF NOT EXISTS siblings_count INTEGER NULL`
+    );
+    await client.query(
+      `ALTER TABLE sisters ADD COLUMN IF NOT EXISTS family_address VARCHAR(255) NULL`
+    );
 
     // Add current_stage field for quick access (denormalized from vocation_journey)
-    await connection
-      .query(
-        `
-      ALTER TABLE sisters 
-      ADD COLUMN IF NOT EXISTS current_stage VARCHAR(50) CHECK (column_name IN ('inquiry','postulant','aspirant','novice','temporary_vows','perpetual_vows','left')) NULL AFTER status
+    await client.query(
+      `
+      ALTER TABLE sisters
+      ADD COLUMN IF NOT EXISTS current_stage VARCHAR(50) NULL
+      CHECK (current_stage IN ('inquiry','postulant','aspirant','novice','temporary_vows','perpetual_vows','left'))
     `
-      )
-      .catch(() => console.log("current_stage column might already exist"));
+    );
 
     // Add community_id for current community (denormalized)
-    await connection
-      .query(
-        `
-      ALTER TABLE sisters 
-      ADD COLUMN IF NOT EXISTS current_community_id INTEGER NULL AFTER current_stage
-    `
-      )
-      .catch(() =>
-        console.log("current_community_id column might already exist")
-      );
+    await client.query(
+      `ALTER TABLE sisters ADD COLUMN IF NOT EXISTS current_community_id INTEGER NULL`
+    );
 
-    // Add foreign key for current_community_id (optional, may fail if already exists)
-    await connection
-      .query(
-        `
-      ALTER TABLE sisters 
-      ADD CONSTRAINT fk_sisters_current_community 
-      FOREIGN KEY (current_community_id) REFERENCES communities(id)
-      ON DELETE SET NULL ON UPDATE CASCADE
-    `
-      )
-      .catch(() =>
-        console.log("FK for current_community_id might already exist")
-      );
+    // Add foreign key for current_community_id
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1
+          FROM pg_constraint
+          WHERE conname = 'fk_sisters_current_community'
+            AND conrelid = 'sisters'::regclass
+        ) THEN
+          ALTER TABLE sisters
+            ADD CONSTRAINT fk_sisters_current_community
+            FOREIGN KEY (current_community_id) REFERENCES communities(id)
+            ON DELETE SET NULL ON UPDATE CASCADE;
+        END IF;
+      END $$;
+    `);
 
     console.log("Extra fields added successfully!");
   } catch (error) {
@@ -133,11 +84,9 @@ const down = async () => {
   try {
     console.log("Removing extra fields from sisters table...");
 
-    await connection
-      .query(
-        `ALTER TABLE sisters DROP FOREIGN KEY IF EXISTS fk_sisters_current_community`
-      )
-      .catch(() => {});
+    await client.query(
+      `ALTER TABLE sisters DROP CONSTRAINT IF EXISTS fk_sisters_current_community`
+    );
     await client.query(
       `ALTER TABLE sisters DROP COLUMN IF EXISTS current_community_id`
     );

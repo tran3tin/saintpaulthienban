@@ -406,9 +406,9 @@ const getDepartureStatistics = async (req, res) => {
          ORDER BY total DESC`
       ),
       DepartureRecordModel.executeQuery(
-        `SELECT YEAR(departure_date) AS year, COUNT(*) AS total
+        `SELECT EXTRACT(YEAR FROM departure_date) AS year, COUNT(*) AS total
          FROM departure_records
-         GROUP BY YEAR(departure_date)
+         GROUP BY EXTRACT(YEAR FROM departure_date)
          ORDER BY year DESC`
       ),
       DepartureRecordModel.executeQuery(

@@ -17,21 +17,8 @@ const up = async () => {
 
   for (const column of columnsToRemove) {
     try {
-      // Check if column exists before dropping
-      const [rows] = await db.query(
-        `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
-         WHERE TABLE_SCHEMA = DATABASE() 
-         AND TABLE_NAME = 'sisters' 
-         AND COLUMN_NAME = ?`,
-        [column]
-      );
-
-      if (rows.length > 0) {
-        await db.query(`ALTER TABLE sisters DROP COLUMN ${column}`);
-        console.log(`  ✓ Dropped column: ${column}`);
-      } else {
-        console.log(`  - Column ${column} does not exist, skipping...`);
-      }
+      await db.query(`ALTER TABLE sisters DROP COLUMN IF EXISTS ${column}`);
+      console.log(`  ✓ Dropped column (if existed): ${column}`);
     } catch (error) {
       console.error(`  ✗ Error dropping column ${column}:`, error.message);
     }
@@ -50,19 +37,17 @@ const down = async () => {
     { name: "preferred_name", type: "VARCHAR(255) NULL" },
     { name: "hometown", type: "VARCHAR(200) NULL" },
     { name: "id_number", type: "VARCHAR(50) NULL" },
-    { name: "documents_url", type: "LONGTEXT NULL" },
+    { name: "documents_url", type: "TEXT NULL" },
   ];
 
   for (const col of columnsToAdd) {
     try {
-      await db.query(`ALTER TABLE sisters ADD COLUMN ${col.name} ${col.type}`);
-      console.log(`  ✓ Added column: ${col.name}`);
+      await db.query(
+        `ALTER TABLE sisters ADD COLUMN IF NOT EXISTS ${col.name} ${col.type}`
+      );
+      console.log(`  ✓ Ensured column exists: ${col.name}`);
     } catch (error) {
-      if (error.code === "ER_DUP_FIELDNAME") {
-        console.log(`  - Column ${col.name} already exists, skipping...`);
-      } else {
-        console.error(`  ✗ Error adding column ${col.name}:`, error.message);
-      }
+      console.error(`  ✗ Error adding column ${col.name}:`, error.message);
     }
   }
 

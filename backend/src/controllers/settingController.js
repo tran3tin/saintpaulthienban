@@ -1,6 +1,7 @@
 // src/controllers/settingController.js
 const db = require("../config/database");
-const mysqldump = require("mysqldump");
+// const mysqldump = require("mysqldump"); // Removed - PostgreSQL doesn't use mysqldump
+const { executeQuery, executeQueryOne } = require("../utils/queryAdapter");
 const fs = require("fs").promises;
 const fsSync = require("fs");
 const path = require("path");
@@ -70,9 +71,9 @@ const updateGeneralSettings = async (req, res) => {
     for (const [key, value] of Object.entries(settings)) {
       await db.execute(
         `INSERT INTO system_settings (setting_key, setting_value, setting_group)
-         VALUES (?, ?, 'general')
-         ON DUPLICATE KEY UPDATE setting_value = ?`,
-        [key, value, value]
+         VALUES ($1, $2, 'general')
+         ON CONFLICT (setting_key) DO UPDATE SET setting_value = EXCLUDED.setting_value`,
+        [key, value]
       );
     }
 
@@ -129,9 +130,9 @@ const updateSystemSettings = async (req, res) => {
         typeof value === "boolean" ? String(value) : String(value);
       await db.execute(
         `INSERT INTO system_settings (setting_key, setting_value, setting_group)
-         VALUES (?, ?, 'system')
-         ON DUPLICATE KEY UPDATE setting_value = ?`,
-        [key, stringValue, stringValue]
+         VALUES ($1, $2, 'system')
+         ON CONFLICT (setting_key) DO UPDATE SET setting_value = EXCLUDED.setting_value`,
+        [key, stringValue]
       );
     }
 
@@ -206,9 +207,9 @@ const updatePreferences = async (req, res) => {
         typeof value === "boolean" ? String(value) : String(value);
       await db.execute(
         `INSERT INTO user_preferences (user_id, preference_key, preference_value)
-         VALUES (?, ?, ?)
-         ON DUPLICATE KEY UPDATE preference_value = ?`,
-        [userId, key, stringValue, stringValue]
+         VALUES ($1, $2, $3)
+         ON CONFLICT (user_id, preference_key) DO UPDATE SET preference_value = EXCLUDED.preference_value`,
+        [userId, key, stringValue]
       );
     }
 
@@ -305,198 +306,49 @@ const getBackups = async (req, res) => {
 };
 
 /**
- * Create new backup using mysqldump npm package and upload to Firebase
+ * Create new backup using pg_dump for PostgreSQL
+ * TODO: Implement PostgreSQL backup functionality
  */
 const createBackup = async (req, res) => {
-  let tempFilePath = null;
-
   try {
-    const userId = req.user.id;
-    const timestamp = new Date()
-      .toISOString()
-      .replace(/[:-]/g, "")
-      .slice(0, 15);
-    const filename = `backup_${timestamp}.sql`;
-
-    // Use /tmp directory for temporary file (Railway-compatible)
-    tempFilePath = path.join("/tmp", filename);
-
-    // Get database config - support both URL and individual params
-    let dbConfig;
-
-    if (process.env.MYSQL_URL || process.env.DATABASE_URL) {
-      // Parse connection URL (Railway format: mysql://user:pass@host:port/database)
-      const connectionUrl = process.env.MYSQL_URL || process.env.DATABASE_URL;
-      const urlPattern =
-        /mysql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+?)(\?.*)?$/;
-      const match = connectionUrl.match(urlPattern);
-
-      if (!match) {
-        throw new Error("Invalid MYSQL_URL format");
-      }
-
-      dbConfig = {
-        host: match[3],
-        port: parseInt(match[4]),
-        user: match[1],
-        password: match[2],
-        database: match[5],
-      };
-    } else {
-      // Use individual environment variables (Railway or manual config)
-      dbConfig = {
-        host: process.env.MYSQLHOST || process.env.DB_HOST || "localhost",
-        port: parseInt(process.env.MYSQLPORT || process.env.DB_PORT || "3306"),
-        user: process.env.MYSQLUSER || process.env.DB_USER || "root",
-        password: process.env.MYSQLPASSWORD || process.env.DB_PASSWORD || "",
-        database: process.env.MYSQLDATABASE || process.env.DB_NAME || "osp_db",
-      };
-    }
-
-    console.log("Creating backup with mysqldump library...");
-    console.log("Database config:", {
-      host: dbConfig.host,
-      port: dbConfig.port,
-      database: dbConfig.database,
-      user: dbConfig.user,
-    });
-
-    // Use mysqldump library to create SQL dump
-    await mysqldump({
-      connection: {
-        host: dbConfig.host,
-        port: dbConfig.port,
-        user: dbConfig.user,
-        password: dbConfig.password,
-        database: dbConfig.database,
-      },
-      dumpToFile: tempFilePath,
-      dump: {
-        schema: {
-          table: {
-            dropIfExist: true,
-          },
-        },
-      },
-    });
-
-    console.log("Backup file created:", tempFilePath);
-
-    // Get file size
-    const stats = await fs.stat(tempFilePath);
-    const fileSize = stats.size;
-
-    console.log("Backup file size:", fileSize);
-
-    // Try to upload to Firebase Storage
-    const bucket = getBucket();
-    let downloadUrl = null;
-    let storagePath = null;
-
-    if (bucket) {
-      try {
-        const firebaseDestination = `backups/${filename}`;
-
-        await bucket.upload(tempFilePath, {
-          destination: firebaseDestination,
-          metadata: {
-            contentType: "application/sql",
-            metadata: {
-              createdBy: userId.toString(),
-              createdAt: new Date().toISOString(),
-            },
-          },
-        });
-
-        console.log("Uploaded to Firebase:", firebaseDestination);
-
-        // Get signed URL for download (expires in 7 days)
-        const file = bucket.file(firebaseDestination);
-        const [url] = await file.getSignedUrl({
-          action: "read",
-          expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
-        });
-
-        downloadUrl = url;
-        storagePath = firebaseDestination;
-
-        console.log("Firebase download URL generated");
-      } catch (uploadError) {
-        console.warn(
-          "Firebase upload failed, falling back to local storage:",
-          uploadError.message
-        );
-      }
-    } else {
-      console.warn("Firebase not configured, storing locally only");
-    }
-
-    // If Firebase upload failed, store locally
-    if (!storagePath) {
-      const backupDir = path.join(__dirname, "../../backups");
-      await fs.mkdir(backupDir, { recursive: true });
-
-      const localPath = path.join(backupDir, filename);
-      await fs.copyFile(tempFilePath, localPath);
-
-      storagePath = `backups/${filename}`;
-      console.log("Backup saved locally:", localPath);
-    }
-
-    // Clean up temp file
-    try {
-      if (tempFilePath && fsSync.existsSync(tempFilePath)) {
-        fsSync.unlinkSync(tempFilePath);
-        console.log("Temp file cleaned up");
-      }
-    } catch (cleanupError) {
-      console.warn("Failed to cleanup temp file:", cleanupError.message);
-    }
-
-    // Insert backup record
-    const [result] = await db.execute(
-      `INSERT INTO backups (filename, file_path, file_size, backup_type, status, created_by, download_url)
-       VALUES (?, ?, ?, 'manual', 'completed', ?, ?)`,
-      [filename, storagePath, fileSize, userId, downloadUrl]
-    );
-
-    res.json({
-      success: true,
-      data: {
-        id: result.insertId,
-        filename,
-        file_path: storagePath,
-        file_size: fileSize,
-        download_url: downloadUrl,
-      },
-      message: "Đã tạo backup thành công",
+    // Temporary placeholder - PostgreSQL backup needs pg_dump
+    res.status(501).json({ 
+      success: false, 
+      message: "Backup functionality is being updated for PostgreSQL. Please use pgAdmin or pg_dump manually for now." 
     });
   } catch (error) {
     console.error("createBackup error:", error);
-
-    // Clean up temp file on error
-    try {
-      if (tempFilePath && fsSync.existsSync(tempFilePath)) {
-        fsSync.unlinkSync(tempFilePath);
-      }
-    } catch (cleanupError) {
-      // Ignore cleanup errors
-    }
-
-    res.status(500).json({
-      success: false,
-      message: "Lỗi khi tạo backup: " + error.message,
+    res.status(500).json({ 
+      success: false, 
+      message: "Backup functionality temporarily unavailable" 
     });
   }
 };
 
 /**
  * Restore backup
+ * TODO: Implement PostgreSQL restore functionality
  */
 const restoreBackup = async (req, res) => {
   try {
-    const { id } = req.params;
+    res.status(501).json({
+      success: false,
+      message: "Restore functionality is being updated for PostgreSQL"
+    });
+  } catch (error) {
+    console.error("restoreBackup error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Restore functionality temporarily unavailable"
+    });
+  }
+};
 
+/**
+ * Get list of backups
+ */
+const getBackupList = async (req, res) => {
+  try {
     const [backups] = await db.execute("SELECT * FROM backups WHERE id = ?", [
       id,
     ]);

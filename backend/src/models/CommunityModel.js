@@ -73,9 +73,9 @@ class CommunityModel extends BaseModel {
                js.name as stage_name, js.color as stage_color
         FROM vocation_journey vj
         INNER JOIN sisters s ON s.id = vj.sister_id
-        LEFT JOIN journey_stages js ON vj.stage COLLATE utf8mb4_unicode_ci = js.code COLLATE utf8mb4_unicode_ci
+        LEFT JOIN journey_stages js ON vj.stage = js.code
         WHERE vj.community_id = ?
-          AND (vj.end_date IS NULL OR vj.end_date >= CURDATE())
+          AND (vj.end_date IS NULL OR vj.end_date >= CURRENT_DATE)
         ORDER BY vj.start_date DESC
       `;
     } else {
@@ -86,7 +86,7 @@ class CommunityModel extends BaseModel {
         FROM vocation_journey vj
         INNER JOIN sisters s ON s.id = vj.sister_id
         WHERE vj.community_id = ?
-          AND (vj.end_date IS NULL OR vj.end_date >= CURDATE())
+          AND (vj.end_date IS NULL OR vj.end_date >= CURRENT_DATE)
         ORDER BY vj.start_date DESC
       `;
     }

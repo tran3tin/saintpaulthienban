@@ -1,39 +1,32 @@
 const pool = require("../config/database");
 
-const upQuery = `
-  ALTER TABLE education
-    ADD COLUMN graduation_year INT NULL AFTER end_date,
-    ADD COLUMN status VARCHAR(50) CHECK (column_name IN ('dang_hoc', 'da_tot_nghiep', 'tam_nghi', 'da_nghi')) DEFAULT 'dang_hoc' AFTER graduation_year,
-    ADD COLUMN gpa VARCHAR(20) NULL AFTER status,
-    ADD COLUMN thesis_title VARCHAR(500) NULL AFTER gpa,
-    ADD COLUMN notes TEXT NULL AFTER thesis_title,
-    ADD COLUMN documents JSONB NULL AFTER notes;
-`;
+const upStatements = [
+  "ALTER TABLE education ADD COLUMN IF NOT EXISTS graduation_year INTEGER NULL",
+  "ALTER TABLE education ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'dang_hoc' CHECK (status IN ('dang_hoc', 'da_tot_nghiep', 'tam_nghi', 'da_nghi'))",
+  "ALTER TABLE education ADD COLUMN IF NOT EXISTS gpa VARCHAR(20) NULL",
+  "ALTER TABLE education ADD COLUMN IF NOT EXISTS thesis_title VARCHAR(500) NULL",
+  "ALTER TABLE education ADD COLUMN IF NOT EXISTS notes TEXT NULL",
+  "ALTER TABLE education ADD COLUMN IF NOT EXISTS documents JSONB NULL",
+];
 
-const downQuery = `
-  ALTER TABLE education
-    DROP COLUMN IF EXISTS graduation_year,
-    DROP COLUMN IF EXISTS status,
-    DROP COLUMN IF EXISTS gpa,
-    DROP COLUMN IF EXISTS thesis_title,
-    DROP COLUMN IF EXISTS notes,
-    DROP COLUMN IF EXISTS documents;
-`;
+const downStatements = [
+  "ALTER TABLE education DROP COLUMN IF EXISTS graduation_year",
+  "ALTER TABLE education DROP COLUMN IF EXISTS status",
+  "ALTER TABLE education DROP COLUMN IF EXISTS gpa",
+  "ALTER TABLE education DROP COLUMN IF EXISTS thesis_title",
+  "ALTER TABLE education DROP COLUMN IF EXISTS notes",
+  "ALTER TABLE education DROP COLUMN IF EXISTS documents",
+];
 
 module.exports = {
   name: "031_add_education_extra_fields",
   up: async () => {
     const client = await pool.connect();
     try {
-      await client.query(upQuery);
-      console.log("Added extra fields to education table");
-    } catch (error) {
-      // Nếu column đã tồn tại thì bỏ qua
-      if (error.code === "ER_DUP_FIELDNAME") {
-        console.log("Some columns already exist, skipping...");
-      } else {
-        throw error;
+      for (const stmt of upStatements) {
+        await client.query(stmt);
       }
+      console.log("Added extra fields to education table (PostgreSQL-safe)");
     } finally {
       client.release();
     }
@@ -41,7 +34,9 @@ module.exports = {
   down: async () => {
     const client = await pool.connect();
     try {
-      await client.query(downQuery);
+      for (const stmt of downStatements) {
+        await client.query(stmt);
+      }
     } finally {
       client.release();
     }

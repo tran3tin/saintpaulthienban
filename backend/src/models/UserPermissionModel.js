@@ -41,15 +41,20 @@ class UserPermissionModel extends BaseModel {
   async grantPermissions(userId, permissionIds, grantedBy) {
     if (!permissionIds || permissionIds.length === 0) return;
 
-    const values = permissionIds.map((permId) => [userId, permId, grantedBy]);
-
-    const query = `
-      INSERT INTO ${this.table} (user_id, permission_id, granted_by)
-      VALUES ?
-      ON DUPLICATE KEY UPDATE granted_at = CURRENT_TIMESTAMP, granted_by = VALUES(granted_by)
-    `;
-
-    return this.executeQuery(query, [values]);
+    // Use individual inserts for PostgreSQL compatibility
+    const results = [];
+    for (const permId of permissionIds) {
+      const query = `
+        INSERT INTO ${this.table} (user_id, permission_id, granted_by)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (user_id, permission_id) DO UPDATE SET 
+          granted_at = CURRENT_TIMESTAMP, 
+          granted_by = EXCLUDED.granted_by
+      `;
+      const result = await this.executeQuery(query, [userId, permId, grantedBy]);
+      results.push(result);
+    }
+    return results;
   }
 
   /**
@@ -58,10 +63,10 @@ class UserPermissionModel extends BaseModel {
   async revokePermissions(userId, permissionIds) {
     if (!permissionIds || permissionIds.length === 0) return;
 
-    const placeholders = permissionIds.map(() => "?").join(",");
+    const placeholders = permissionIds.map((_, i) => `$${i + 2}`).join(",");
     const query = `
       DELETE FROM ${this.table} 
-      WHERE user_id = ? AND permission_id IN (${placeholders})
+      WHERE user_id = $1 AND permission_id IN (${placeholders})
     `;
 
     return this.executeQuery(query, [userId, ...permissionIds]);

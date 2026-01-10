@@ -6,25 +6,10 @@ async function up() {
   try {
     console.log("Adding recommendations column to evaluations table...");
 
-    // Check if column exists
-    const [columns] = await client.query(
-      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
-       WHERE TABLE_SCHEMA = DATABASE() 
-       AND TABLE_NAME = 'evaluations' 
-       AND COLUMN_NAME = 'recommendations'`
+    await client.query(
+      `ALTER TABLE evaluations ADD COLUMN IF NOT EXISTS recommendations TEXT NULL`
     );
-
-    if (columns.length === 0) {
-      // Add recommendations column after weaknesses
-      await client.query(
-        `ALTER TABLE evaluations 
-         ADD COLUMN recommendations TEXT NULL 
-         AFTER weaknesses`
-      );
-      console.log("Column 'recommendations' added successfully");
-    } else {
-      console.log("Column 'recommendations' already exists");
-    }
+    console.log("✓ Ensured evaluations.recommendations exists");
 
     console.log(
       "Migration 027_add_recommendations_column completed successfully"

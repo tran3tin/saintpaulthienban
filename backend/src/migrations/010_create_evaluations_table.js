@@ -30,6 +30,8 @@ const upQuery = `
     RETURN NEW;
   END;
   $$ LANGUAGE plpgsql;
+
+  DROP TRIGGER IF EXISTS evaluations_updated_at_trigger ON evaluations;
   
   CREATE TRIGGER evaluations_updated_at_trigger
   BEFORE UPDATE ON evaluations

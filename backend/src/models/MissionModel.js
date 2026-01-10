@@ -70,7 +70,7 @@ class MissionModel extends BaseModel {
       SELECT mi.*, s.religious_name, s.birth_name
       FROM ${this.tableName} mi
       INNER JOIN sisters s ON s.id = mi.sister_id
-      WHERE mi.end_date IS NULL OR mi.end_date >= CURDATE()
+      WHERE mi.end_date IS NULL OR mi.end_date >= CURRENT_DATE
       ORDER BY mi.start_date DESC
     `;
     return this.executeQuery(sql, []);

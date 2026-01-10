@@ -1,0 +1,25 @@
+-- PostgreSQL initialization helper for the OSP HR system
+--
+-- This project now uses PostgreSQL. The authoritative schema is created via
+-- the JavaScript migrations in `backend/src/migrations/`.
+--
+-- Use this file as a helper to prepare a fresh PostgreSQL database before
+-- running the Node migrations.
+--
+-- Typical setup (manual commands):
+--   1) Create the database (once):
+--        createdb hr_records
+--      (or via pgAdmin)
+--   2) Configure backend/.env (DATABASE_URL or PGHOST/PGUSER/PGPASSWORD/PGDATABASE)
+--   3) Run migrations:
+--        cd backend
+--        node src/migrations/runMigrations.js
+--
+-- Note:
+-- - `backend/db/init.sql` is a legacy MySQL-only init script and should NOT be used.
+
+-- Optional: ensure we're on the right encoding/locale is handled at CREATE DATABASE time.
+
+-- Optional extensions (only if you need them later)
+-- CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- CREATE EXTENSION IF NOT EXISTS "pgcrypto";

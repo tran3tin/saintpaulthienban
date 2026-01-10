@@ -10,6 +10,13 @@ const sanitizeUser = (user) => {
   }
 
   const { password, ...rest } = user;
+  
+  // Normalize is_admin field based on role
+  // Database has 'role' field, but frontend expects 'is_admin'
+  if (rest.is_admin === undefined && rest.role === 'admin') {
+    rest.is_admin = 1;
+  }
+  
   return rest;
 };
 
@@ -134,7 +141,7 @@ const login = async (req, res) => {
 
     // Get user permissions
     const permissionsData = await UserModel.getPermissions(user.id);
-    const permissions = permissionsData.map((p) => p.name); // Array of permission names
+    const permissions = permissionsData.map((p) => p.code); // Array of permission codes
 
     return res.status(200).json({
       success: true,

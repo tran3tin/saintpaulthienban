@@ -641,7 +641,7 @@ const getAllPermissions = async (req, res) => {
     const permissions = await UserModel.executeQuery(`
       SELECT id, name, display_name as displayName, description, module
       FROM permissions
-      WHERE is_active = 1
+      WHERE is_active = true
       ORDER BY module, name
     `);
 

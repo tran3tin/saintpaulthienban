@@ -102,7 +102,7 @@ class UserModel extends BaseModel {
       SELECT p.*
       FROM permissions p
       INNER JOIN user_permissions up ON p.id = up.permission_id
-      WHERE up.user_id = ? AND p.is_active = 1
+      WHERE up.user_id = $1 AND p.is_active = true
     `;
 
     return await this.executeQuery(sql, [userId]);
@@ -115,30 +115,30 @@ class UserModel extends BaseModel {
     // Get connection for transaction
     const connection = await this.pool.getConnection();
     try {
-      await connection.beginTransaction();
+      await connection.query('BEGIN');
 
       // Remove old permissions
-      await connection.execute(
-        "DELETE FROM user_permissions WHERE user_id = ?",
+      await connection.query(
+        "DELETE FROM user_permissions WHERE user_id = $1",
         [userId]
       );
 
-      // Add new permissions one by one (mysql2 doesn't support bulk insert with VALUES ?)
+      // Add new permissions one by one
       if (permissionIds && permissionIds.length > 0) {
         for (const permId of permissionIds) {
-          await connection.execute(
-            "INSERT INTO user_permissions (user_id, permission_id, granted_by) VALUES (?, ?, ?)",
+          await connection.query(
+            "INSERT INTO user_permissions (user_id, permission_id, granted_by) VALUES ($1, $2, $3)",
             [userId, permId, grantedBy]
           );
         }
       }
 
-      await connection.commit();
+      await connection.query('COMMIT');
       console.log(
         `Assigned ${permissionIds?.length || 0} permissions to user ${userId}`
       );
     } catch (error) {
-      await connection.rollback();
+      await connection.query('ROLLBACK');
       console.error("Error assigning permissions:", error);
       throw error;
     } finally {

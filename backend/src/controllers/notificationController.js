@@ -20,9 +20,7 @@ const getNotifications = async (req, res) => {
       `[Debug] UserID: ${userId}, Limit (Number): ${limitNumber}, Type: ${typeof limitNumber}`
     );
 
-    // 3. Thực thi Query với db.query() thay vì db.execute()
-    // query() dùng client-side text protocol, xử lý LIMIT ? tốt hơn
-    const [notifications] = await db.query(
+    const [notifications] = await db.execute(
       `SELECT * FROM notifications 
        WHERE user_id = ? 
        ORDER BY created_at DESC LIMIT ?`,
@@ -30,8 +28,8 @@ const getNotifications = async (req, res) => {
     );
 
     // Get unread count
-    const [countResult] = await db.query(
-      "SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0",
+    const [countResult] = await db.execute(
+      "SELECT COUNT(*)::int as count FROM notifications WHERE user_id = ? AND is_read = FALSE",
       [userId]
     );
 
@@ -54,7 +52,7 @@ const getUnreadCount = async (req, res) => {
     const userId = req.user.id;
 
     const [rows] = await db.execute(
-      "SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0",
+      "SELECT COUNT(*)::int as count FROM notifications WHERE user_id = ? AND is_read = FALSE",
       [userId]
     );
 
@@ -76,12 +74,12 @@ const markAsRead = async (req, res) => {
     const userId = req.user.id;
     const { id } = req.params;
 
-    const [result] = await db.execute(
-      "UPDATE notifications SET is_read = 1, read_at = NOW() WHERE id = ? AND user_id = ?",
+    const [rows] = await db.execute(
+      "UPDATE notifications SET is_read = TRUE, read_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ? RETURNING id",
       [id, userId]
     );
 
-    if (result.affectedRows === 0) {
+    if (!rows || rows.length === 0) {
       return res.status(404).json({
         success: false,
         message: "Không tìm thấy thông báo",
@@ -105,7 +103,7 @@ const markAllAsRead = async (req, res) => {
     const userId = req.user.id;
 
     await db.execute(
-      "UPDATE notifications SET is_read = 1, read_at = NOW() WHERE user_id = ? AND is_read = 0",
+      "UPDATE notifications SET is_read = TRUE, read_at = CURRENT_TIMESTAMP WHERE user_id = ? AND is_read = FALSE",
       [userId]
     );
 
@@ -126,12 +124,12 @@ const deleteNotification = async (req, res) => {
     const userId = req.user.id;
     const { id } = req.params;
 
-    const [result] = await db.execute(
-      "DELETE FROM notifications WHERE id = ? AND user_id = ?",
+    const [rows] = await db.execute(
+      "DELETE FROM notifications WHERE id = ? AND user_id = ? RETURNING id",
       [id, userId]
     );
 
-    if (result.affectedRows === 0) {
+    if (!rows || rows.length === 0) {
       return res.status(404).json({
         success: false,
         message: "Không tìm thấy thông báo",
@@ -175,15 +173,15 @@ const createNotification = async (req, res) => {
       });
     }
 
-    const [result] = await db.execute(
+    const [rows] = await db.execute(
       `INSERT INTO notifications (user_id, type, title, message, link)
-       VALUES (?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?) RETURNING id`,
       [user_id, type, title, message || null, link || null]
     );
 
     res.json({
       success: true,
-      data: { id: result.insertId },
+      data: { id: rows?.[0]?.id },
       message: "Đã tạo thông báo",
     });
   } catch (error) {
@@ -213,19 +211,12 @@ const broadcastNotification = async (req, res) => {
       });
     }
 
-    const values = user_ids.map((uid) => [
-      uid,
-      type,
-      title,
-      message || null,
-      link || null,
-    ]);
-    const placeholders = values.map(() => "(?, ?, ?, ?, ?)").join(", ");
-    const flatValues = values.flat();
-
+    // Use UNNEST to insert for multiple users efficiently
     await db.execute(
-      `INSERT INTO notifications (user_id, type, title, message, link) VALUES ${placeholders}`,
-      flatValues
+      `INSERT INTO notifications (user_id, type, title, message, link)
+       SELECT uid, ?, ?, ?, ?
+       FROM UNNEST(?::int[]) AS uid`,
+      [type, title, message || null, link || null, user_ids]
     );
 
     res.json({

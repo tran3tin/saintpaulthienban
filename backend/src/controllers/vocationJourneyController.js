@@ -175,7 +175,7 @@ const getAllJourneys = async (req, res) => {
         FROM vocation_journey vj
         LEFT JOIN sisters s ON vj.sister_id = s.id
         ${currentCommunityJoin}
-        LEFT JOIN journey_stages js ON vj.stage COLLATE utf8mb4_unicode_ci = js.code COLLATE utf8mb4_unicode_ci
+        LEFT JOIN journey_stages js ON vj.stage = js.code
         LEFT JOIN communities c ON vj.community_id = c.id
         WHERE ${whereClause}
         ORDER BY ${orderByClause}
@@ -266,7 +266,7 @@ const getJourneyById = async (req, res) => {
         FROM vocation_journey vj
         LEFT JOIN sisters s ON vj.sister_id = s.id
         LEFT JOIN communities c ON vj.community_id = c.id
-        LEFT JOIN journey_stages js ON vj.stage COLLATE utf8mb4_unicode_ci = js.code COLLATE utf8mb4_unicode_ci
+        LEFT JOIN journey_stages js ON vj.stage = js.code
         WHERE vj.id = ?
       `;
     } else {
@@ -687,7 +687,7 @@ const getStatisticsByStage = async (req, res) => {
        FROM (
          SELECT sister_id, stage
          FROM vocation_journey
-         WHERE end_date IS NULL OR end_date >= CURDATE()
+         WHERE end_date IS NULL OR end_date >= CURRENT_DATE
        ) AS current_stages
        GROUP BY stage`
     );

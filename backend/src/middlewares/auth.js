@@ -5,6 +5,8 @@ const UserModel = require("../models/UserModel");
 
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
+const JWT_SECRET = process.env.JWT_SECRET || "changeme";
+
 const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
@@ -19,24 +21,16 @@ const authenticateToken = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
 
-    // Get user details including permissions and scope info
-    const db = require("../config/database");
-    const [users] = await db.query(
-      `SELECT id, username, data_scope, is_admin, is_super_admin, is_active 
-       FROM users WHERE id = ?`,
-      [decoded.id]
-    );
-
-    if (!users || users.length === 0) {
+    // PostgreSQL schema uses users.role + users.is_active
+    const dbUser = await UserModel.findById(decoded.id);
+    if (!dbUser) {
       return res.status(401).json({ message: "User not found" });
     }
 
-    const user = users[0];
-
     // Check if account is locked
-    if (!user.is_active) {
+    if (!dbUser.is_active) {
       return res.status(403).json({
         success: false,
         code: "ACCOUNT_LOCKED",
@@ -48,21 +42,18 @@ const authenticateToken = async (req, res, next) => {
     // Get user permissions
     const permissions = await UserModel.getPermissions(decoded.id);
 
-    // Determine role based on is_admin and is_super_admin flags
-    let role = "user";
-    if (user.is_super_admin === 1) {
-      role = "superior_general";
-    } else if (user.is_admin === 1) {
-      role = "admin";
-    }
+    // Determine role from DB (fallback to user)
+    const role = dbUser.role || "user";
+    const isAdmin = role === "admin" || role === "superior_general";
 
     req.user = {
       ...decoded,
-      data_scope: user.data_scope,
-      is_admin: user.is_admin,
-      is_super_admin: user.is_super_admin,
-      role: role,
-      permissions: permissions.map((p) => p.name),
+      role,
+      // Keep legacy flags for compatibility with older code
+      is_admin: isAdmin ? 1 : 0,
+      is_super_admin: role === "superior_general" ? 1 : 0,
+      // Use permission codes consistently (e.g. "posts.view")
+      permissions: permissions.map((p) => p.code),
     };
 
     return next();
@@ -97,6 +88,17 @@ const checkPermission = (requiredPermission) => {
       permissionCount: req.user?.permissions?.length,
       hasRequired: req.user?.permissions?.includes(requiredPermission),
     });
+
+    // Admin bypass: admins/superior generals can access all endpoints
+    if (
+      req.user &&
+      (req.user.is_admin === 1 ||
+        req.user.role === "admin" ||
+        req.user.role === "superior_general")
+    ) {
+      console.log(`[CheckPermission] ✅ Admin bypass granted`);
+      return next();
+    }
 
     // Check if user has the specific required permission
     if (

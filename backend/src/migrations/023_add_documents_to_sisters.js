@@ -1,44 +1,44 @@
 // Migration: Add documents JSONB field to sisters table
 const pool = require("../config/database");
 
-async function up() {
+const up = async () => {
   const client = await pool.connect();
-  
+
   try {
     console.log("Adding documents field to sisters table...");
-
-    // Check if documents column exists
-    const [columns] = await client.query(`
-      SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
-      WHERE TABLE_SCHEMA = DATABASE() 
-      AND TABLE_NAME = 'sisters' 
-      AND COLUMN_NAME = 'documents'
-    `);
-
-    if (columns.length === 0) {
-      // Add documents column as JSONB await client.query(`
-        ALTER TABLE sisters 
-        ADD COLUMN documents JSONB DEFAULT NULL 
-        COMMENT 'JSON array of document files'
-      `);
-      console.log("✓ Added documents column");
-    } else {
-      console.log("✓ documents column already exists");
+    await client.query(`ALTER TABLE sisters ADD COLUMN IF NOT EXISTS documents JSONB`);
+    try {
+      await client.query(
+        `COMMENT ON COLUMN sisters.documents IS 'JSON array of document files'`
+      );
+    } catch {
+      // Ignore comment failures (e.g. permissions or older PG setups)
     }
-
-    console.log("Migration completed successfully!");
+    console.log("✓ Ensured sisters.documents exists");
   } catch (error) {
     console.error("Migration failed:", error.message);
     throw error;
   } finally {
     client.release();
   }
-}
+};
 
-// Run migration
-up()
-  .then(() => process.exit(0))
-  .catch((err) => {
-    console.error(err);
-    process.exit(1);
-  });
+const down = async () => {
+  const client = await pool.connect();
+  try {
+    await client.query("ALTER TABLE sisters DROP COLUMN IF EXISTS documents");
+  } finally {
+    client.release();
+  }
+};
+
+module.exports = { up, down };
+
+if (require.main === module) {
+  up()
+    .then(() => process.exit(0))
+    .catch((err) => {
+      console.error(err);
+      process.exit(1);
+    });
+}

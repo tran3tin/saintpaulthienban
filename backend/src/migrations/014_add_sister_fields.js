@@ -16,91 +16,48 @@ async function up() {
   try {
     console.log("Adding new fields to sisters table...");
 
-    // Check if columns already exist
-    const [columns] = await client.query(`
-            SELECT COLUMN_NAME 
-            FROM INFORMATION_SCHEMA.COLUMNS 
-            WHERE TABLE_SCHEMA = DATABASE() 
-            AND TABLE_NAME = 'sisters'
-        `);
-
-    const existingColumns = columns.map((col) => col.COLUMN_NAME);
-
-    // Add saint_name column
-    if (!existingColumns.includes("saint_name")) {
-      await client.query(`
-                ALTER TABLE sisters 
-                ADD COLUMN saint_name VARCHAR(120) NULL 
-                AFTER code
-            `);
-      console.log("Added column: saint_name");
-    }
-
-    // Add prefer_name column
-    if (!existingColumns.includes("prefer_name")) {
-      await client.query(`
-                ALTER TABLE sisters 
-                ADD COLUMN prefer_name VARCHAR(120) NULL 
-                AFTER religious_name
-            `);
-      console.log("Added column: prefer_name");
-    }
-
-    // Add hometown column (nguyên quán)
-    if (!existingColumns.includes("hometown")) {
-      await client.query(`
-                ALTER TABLE sisters 
-                ADD COLUMN hometown VARCHAR(200) NULL 
-                AFTER place_of_birth
-            `);
-      console.log("Added column: hometown");
-    }
-
-    // Add permanent_address column
-    if (!existingColumns.includes("permanent_address")) {
-      await client.query(`
-                ALTER TABLE sisters 
-                ADD COLUMN permanent_address VARCHAR(255) NULL 
-                AFTER hometown
-            `);
-      console.log("Added column: permanent_address");
-    }
-
-    // Add id_number column (CCCD/Passport)
-    if (!existingColumns.includes("id_number")) {
-      await client.query(`
-                ALTER TABLE sisters 
-                ADD COLUMN id_number VARCHAR(50) NULL 
-                AFTER permanent_address
-            `);
-      console.log("Added column: id_number");
-    }
-
-    // Add notes column
-    if (!existingColumns.includes("notes")) {
-      await client.query(`
-                ALTER TABLE sisters 
-                ADD COLUMN notes TEXT NULL 
-                AFTER emergency_contact_phone
-            `);
-      console.log("Added column: notes");
-    }
-
-    // Add documents_url column (JSON array for multiple files)
-    if (!existingColumns.includes("documents_url")) {
-      await client.query(`
-                ALTER TABLE sisters 
-                ADD COLUMN documents_url JSONB NULL 
-                AFTER photo_url
-            `);
-      console.log("Added column: documents_url");
-    }
-
-    // Modify status ENUM to include more options
+    // PostgreSQL: Add columns if they don't exist
     await client.query(`
-            ALTER TABLE sisters ALTER COLUMN status TYPE VARCHAR(50) NOT NULL CHECK (column_name IN ('active', 'left', 'deceased', 'transferred')) DEFAULT 'active'
-        `);
-    console.log("Modified column: status (added more options)");
+      ALTER TABLE sisters 
+      ADD COLUMN IF NOT EXISTS saint_name VARCHAR(120) NULL
+    `);
+    console.log("Added column: saint_name");
+
+    await client.query(`
+      ALTER TABLE sisters 
+      ADD COLUMN IF NOT EXISTS prefer_name VARCHAR(120) NULL
+    `);
+    console.log("Added column: prefer_name");
+
+    await client.query(`
+      ALTER TABLE sisters 
+      ADD COLUMN IF NOT EXISTS hometown VARCHAR(200) NULL
+    `);
+    console.log("Added column: hometown");
+
+    await client.query(`
+      ALTER TABLE sisters 
+      ADD COLUMN IF NOT EXISTS permanent_address VARCHAR(255) NULL
+    `);
+    console.log("Added column: permanent_address");
+
+    await client.query(`
+      ALTER TABLE sisters 
+      ADD COLUMN IF NOT EXISTS id_number VARCHAR(50) NULL
+    `);
+    console.log("Added column: id_number");
+
+    await client.query(`
+      ALTER TABLE sisters 
+      ADD COLUMN IF NOT EXISTS notes TEXT NULL
+    `);
+    console.log("Added column: notes");
+
+    await client.query(`
+      ALTER TABLE sisters 
+      ADD COLUMN IF NOT EXISTS documents_url JSONB NULL
+    `);
+    console.log("Added column: documents_url");
 
     console.log("Migration 014_add_sister_fields completed successfully!");
   } catch (error) {
@@ -117,29 +74,13 @@ async function down() {
     console.log("Reverting migration 014_add_sister_fields...");
 
     // Drop added columns
-    const columnsToRemove = [
-      "saint_name",
-      "prefer_name",
-      "permanent_address",
-      "id_number",
-      "hometown",
-      "notes",
-      "documents_url",
-    ];
-
-    for (const column of columnsToRemove) {
-      try {
-        await client.query(`ALTER TABLE sisters DROP COLUMN ${column}`);
-        console.log(`Dropped column: ${column}`);
-      } catch (err) {
-        console.log(`Column ${column} does not exist or could not be dropped`);
-      }
-    }
-
-    // Revert status ENUM
-    await client.query(`
-            ALTER TABLE sisters ALTER COLUMN status TYPE VARCHAR(50) NOT NULL CHECK (column_name IN ('active', 'left')) DEFAULT 'active'
-        `);
+    await client.query(`ALTER TABLE sisters DROP COLUMN IF EXISTS saint_name`);
+    await client.query(`ALTER TABLE sisters DROP COLUMN IF EXISTS prefer_name`);
+    await client.query(`ALTER TABLE sisters DROP COLUMN IF EXISTS permanent_address`);
+    await client.query(`ALTER TABLE sisters DROP COLUMN IF EXISTS id_number`);
+    await client.query(`ALTER TABLE sisters DROP COLUMN IF EXISTS hometown`);
+    await client.query(`ALTER TABLE sisters DROP COLUMN IF EXISTS notes`);
+    await client.query(`ALTER TABLE sisters DROP COLUMN IF EXISTS documents_url`);
 
     console.log("Migration 014_add_sister_fields reverted successfully!");
   } catch (error) {

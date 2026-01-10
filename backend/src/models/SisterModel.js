@@ -115,12 +115,12 @@ class SisterModel extends BaseModel {
     const params = [];
 
     if (typeof minAge === "number") {
-      clauses.push("TIMESTAMPDIFF(YEAR, date_of_birth, CURDATE()) >= ?");
+      clauses.push("EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth))::INT >= ?");
       params.push(minAge);
     }
 
     if (typeof maxAge === "number") {
-      clauses.push("TIMESTAMPDIFF(YEAR, date_of_birth, CURDATE()) <= ?");
+      clauses.push("EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth))::INT <= ?");
       params.push(maxAge);
     }
 

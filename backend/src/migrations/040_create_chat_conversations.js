@@ -7,25 +7,25 @@ const up = async () => {
 
   const createTableQuery = `
     CREATE TABLE IF NOT EXISTS chat_conversations (
-      id INT PRIMARY KEY AUTO_INCREMENT,
-      conversation_id VARCHAR(36) NOT NULL,
-      user_id INT,
+      id SERIAL PRIMARY KEY,
+      conversation_id UUID NOT NULL,
+      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
       user_message TEXT NOT NULL,
       ai_response TEXT NOT NULL,
-      context_used JSON,
-      entities_extracted JSON,
+      context_used JSONB,
+      entities_extracted JSONB,
       intent VARCHAR(50),
-      tokens_used INT DEFAULT 0,
-      cost DECIMAL(10, 6) DEFAULT 0,
+      tokens_used INTEGER DEFAULT 0,
+      cost NUMERIC(10, 6) DEFAULT 0,
       is_helpful BOOLEAN,
       feedback TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP 
-    )   COLLATE=utf8mb4_unicode_ci
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
   `;
 
   try {
-    await db.execute(createTableQuery);
+    await db.query(createTableQuery);
     console.log("✅ chat_conversations table created successfully");
   } catch (error) {
     console.error("❌ Error creating chat_conversations table:", error.message);
@@ -37,7 +37,7 @@ const down = async () => {
   console.log("Rolling back migration: Drop chat_conversations table...");
 
   try {
-    await db.execute("DROP TABLE IF EXISTS chat_conversations");
+    await db.query("DROP TABLE IF EXISTS chat_conversations");
     console.log("✅ chat_conversations table dropped successfully");
   } catch (error) {
     console.error("❌ Error dropping chat_conversations table:", error.message);

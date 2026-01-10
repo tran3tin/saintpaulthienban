@@ -62,7 +62,7 @@ class CommunityAssignmentModel extends BaseModel {
       FROM ${this.tableName} ca
       INNER JOIN communities c ON c.id = ca.community_id
       WHERE ca.sister_id = ?
-        AND (ca.end_date IS NULL OR ca.end_date >= CURDATE())
+        AND (ca.end_date IS NULL OR ca.end_date >= CURRENT_DATE)
       ORDER BY ca.start_date DESC
       LIMIT 1
     `;

@@ -64,7 +64,7 @@ class TrainingCourseModel extends BaseModel {
 
     const sql = `
       SELECT * FROM ${this.tableName}
-      WHERE YEAR(start_date) = ? OR YEAR(end_date) = ?
+      WHERE EXTRACT(YEAR FROM start_date) = ? OR EXTRACT(YEAR FROM end_date) = ?
       ORDER BY start_date DESC
     `;
     return this.executeQuery(sql, [year, year]);

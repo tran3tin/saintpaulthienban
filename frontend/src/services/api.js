@@ -3,12 +3,17 @@
 import axios from "axios";
 import { toast } from "react-toastify";
 
-// Primary backend URL (Railway), fallback to localhost
+// Backend URLs
 const RAILWAY_API = "https://osp-backend-production.up.railway.app/api";
 const LOCALHOST_API = "http://localhost:5000/api";
 
-// Try Railway first, fallback to localhost if unavailable
-let baseURL = RAILWAY_API;
+// Use localhost in development, Railway in production
+let baseURL = import.meta.env.DEV ? LOCALHOST_API : RAILWAY_API;
+
+// Override with environment variable if set
+if (import.meta.env.VITE_API_URL) {
+  baseURL = import.meta.env.VITE_API_URL;
+}
 
 // Create axios instance
 const api = axios.create({

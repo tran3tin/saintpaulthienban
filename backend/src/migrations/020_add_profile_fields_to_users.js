@@ -8,41 +8,24 @@ const up = async () => {
   try {
     console.log("Adding profile fields to users table...");
 
+    // PostgreSQL doesn't support AFTER keyword, columns are added at the end
     // Add full_name column
-    await connection
-      .query(
-        `
+    await client.query(`
       ALTER TABLE users 
-      ADD COLUMN IF NOT EXISTS full_name VARCHAR(150) NULL AFTER email
-    `
-      )
-      .catch(() => {
-        // Column might already exist
-      });
+      ADD COLUMN IF NOT EXISTS full_name VARCHAR(150) NULL
+    `);
 
     // Add phone column
-    await connection
-      .query(
-        `
+    await client.query(`
       ALTER TABLE users 
-      ADD COLUMN IF NOT EXISTS phone VARCHAR(30) NULL AFTER full_name
-    `
-      )
-      .catch(() => {
-        // Column might already exist
-      });
+      ADD COLUMN IF NOT EXISTS phone VARCHAR(30) NULL
+    `);
 
     // Add avatar column
-    await connection
-      .query(
-        `
+    await client.query(`
       ALTER TABLE users 
-      ADD COLUMN IF NOT EXISTS avatar VARCHAR(500) NULL AFTER phone
-    `
-      )
-      .catch(() => {
-        // Column might already exist
-      });
+      ADD COLUMN IF NOT EXISTS avatar VARCHAR(500) NULL
+    `);
 
     console.log("Profile fields added successfully!");
   } catch (error) {

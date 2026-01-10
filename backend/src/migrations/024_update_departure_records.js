@@ -2,29 +2,28 @@
 const pool = require("../config/database");
 
 const upQueries = [
-  `ALTER TABLE departure_records ADD COLUMN type VARCHAR(50) NULL AFTER departure_date`,
-  `ALTER TABLE departure_records ADD COLUMN expected_return_date DATE NULL AFTER type`,
-  `ALTER TABLE departure_records ADD COLUMN return_date DATE NULL AFTER expected_return_date`,
-  `ALTER TABLE departure_records ADD COLUMN destination VARCHAR(255) NULL AFTER return_date`,
-  `ALTER TABLE departure_records ADD COLUMN contact_phone VARCHAR(50) NULL AFTER destination`,
-  `ALTER TABLE departure_records ADD COLUMN contact_address TEXT NULL AFTER contact_phone`,
-  `ALTER TABLE departure_records ADD COLUMN approved_by INTEGER NULL AFTER contact_address`,
-  `ALTER TABLE departure_records ADD COLUMN notes TEXT NULL AFTER approved_by`,
-  `ALTER TABLE departure_records ADD COLUMN documents JSONB NULL AFTER notes`,
-  `ALTER TABLE departure_records ALTER COLUMN stage_at_departure TYPE VARCHAR(50) CHECK (column_name IN ('inquiry','postulant','aspirant','novice','temporary_vows','perpetual_vows','left')) NULL`,
+  `ALTER TABLE departure_records ADD COLUMN IF NOT EXISTS type VARCHAR(50) NULL`,
+  `ALTER TABLE departure_records ADD COLUMN IF NOT EXISTS expected_return_date DATE NULL`,
+  `ALTER TABLE departure_records ADD COLUMN IF NOT EXISTS return_date DATE NULL`,
+  `ALTER TABLE departure_records ADD COLUMN IF NOT EXISTS destination VARCHAR(255) NULL`,
+  `ALTER TABLE departure_records ADD COLUMN IF NOT EXISTS contact_phone VARCHAR(50) NULL`,
+  `ALTER TABLE departure_records ADD COLUMN IF NOT EXISTS contact_address TEXT NULL`,
+  `ALTER TABLE departure_records ADD COLUMN IF NOT EXISTS approved_by INTEGER NULL`,
+  `ALTER TABLE departure_records ADD COLUMN IF NOT EXISTS notes TEXT NULL`,
+  `ALTER TABLE departure_records ADD COLUMN IF NOT EXISTS documents JSONB NULL`,
+  `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name='departure_records' AND column_name='stage_at_departure') THEN ALTER TABLE departure_records ALTER COLUMN stage_at_departure DROP NOT NULL; END IF; END $$;`,
 ];
 
 const downQueries = [
-  `ALTER TABLE departure_records DROP COLUMN type`,
-  `ALTER TABLE departure_records DROP COLUMN expected_return_date`,
-  `ALTER TABLE departure_records DROP COLUMN return_date`,
-  `ALTER TABLE departure_records DROP COLUMN destination`,
-  `ALTER TABLE departure_records DROP COLUMN contact_phone`,
-  `ALTER TABLE departure_records DROP COLUMN contact_address`,
-  `ALTER TABLE departure_records DROP COLUMN approved_by`,
-  `ALTER TABLE departure_records DROP COLUMN notes`,
-  `ALTER TABLE departure_records DROP COLUMN documents`,
-  `ALTER TABLE departure_records ALTER COLUMN stage_at_departure TYPE VARCHAR(50) NOT NULL CHECK (column_name IN ('inquiry','postulant','aspirant','novice','temporary_vows','perpetual_vows','left'))`,
+  `ALTER TABLE departure_records DROP COLUMN IF EXISTS type`,
+  `ALTER TABLE departure_records DROP COLUMN IF EXISTS expected_return_date`,
+  `ALTER TABLE departure_records DROP COLUMN IF EXISTS return_date`,
+  `ALTER TABLE departure_records DROP COLUMN IF EXISTS destination`,
+  `ALTER TABLE departure_records DROP COLUMN IF EXISTS contact_phone`,
+  `ALTER TABLE departure_records DROP COLUMN IF EXISTS contact_address`,
+  `ALTER TABLE departure_records DROP COLUMN IF EXISTS approved_by`,
+  `ALTER TABLE departure_records DROP COLUMN IF EXISTS notes`,
+  `ALTER TABLE departure_records DROP COLUMN IF EXISTS documents`,
 ];
 
 module.exports = {
@@ -37,10 +36,7 @@ module.exports = {
           await client.query(query);
           console.log("  ✓ " + query.substring(0, 60) + "...");
         } catch (err) {
-          // Ignore "Duplicate column" errors (column already exists)
-          if (err.code !== "ER_DUP_FIELDNAME") {
-            console.log("  ⚠ Skipped (may already exist): " + err.message);
-          }
+          console.log("  ⚠ Skipped: " + err.message);
         }
       }
     } finally {

@@ -31,7 +31,7 @@ const getDashboardStats = async (req, res) => {
 
     // Average age of active sisters
     const [avgAgeResult] = await SisterModel.executeQuery(
-      `SELECT ROUND(AVG(TIMESTAMPDIFF(YEAR, date_of_birth, CURDATE()))) as avg_age 
+      `SELECT ROUND(AVG(EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth))::INT)) as avg_age 
        FROM sisters 
        WHERE status = 'active' AND date_of_birth IS NOT NULL`
     );
@@ -40,8 +40,8 @@ const getDashboardStats = async (req, res) => {
     // New sisters this month
     const [newSistersResult] = await SisterModel.executeQuery(
       `SELECT COUNT(*) as total FROM sisters 
-       WHERE MONTH(created_at) = MONTH(CURDATE()) 
-       AND YEAR(created_at) = YEAR(CURDATE())`
+       WHERE EXTRACT(MONTH FROM created_at) = EXTRACT(MONTH FROM CURRENT_DATE) 
+       AND EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM CURRENT_DATE)`
     );
     const newSistersThisMonth = newSistersResult?.total || 0;
 
@@ -239,7 +239,7 @@ const getQuickStats = async (req, res) => {
        WHERE category = 'su-kien' 
        AND status = 'published' 
        AND deleted_at IS NULL
-       AND created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)`
+       AND created_at >= CURRENT_DATE - INTERVAL '7 days'`
     );
 
     // Important announcements
@@ -253,7 +253,7 @@ const getQuickStats = async (req, res) => {
     // Active missions
     const [activeMissions] = await SisterModel.executeQuery(
       `SELECT COUNT(*) as total FROM missions 
-       WHERE (end_date IS NULL OR end_date >= CURDATE())`
+       WHERE (end_date IS NULL OR end_date >= CURRENT_DATE)`
     );
 
     return res.status(200).json({

@@ -6,25 +6,28 @@ const adminPasswordHash =
 const up = async () => {
   const client = await pool.connect();
   try {
-    await connection.beginTransaction();
+    // PostgreSQL doesn't have beginTransaction, use BEGIN
+    await client.query('BEGIN');
+    
+    // PostgreSQL uses ON CONFLICT instead of ON DUPLICATE KEY UPDATE
     await client.query(
       `INSERT INTO users (username, password, email, role, is_active)
-       VALUES ('admin', ?, 'admin@example.com', 'admin', 1)
-       ON DUPLICATE KEY UPDATE username = username;`,
-      [adminPasswordHash]
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (username) DO NOTHING`,
+      ['admin', adminPasswordHash, 'admin@example.com', 'admin', 1]
     );
 
     await client.query(
-      `INSERT INTO communities (code, name, address)
+      `INSERT INTO communities (code, name, address, type)
        VALUES
-         ('MH-001', 'Motherhouse Headquarters', '123 Main St, City'),
-         ('EDU-001', 'St. Joseph Education Center', '45 School Ave, City')
-       ON DUPLICATE KEY UPDATE code = code;`
+         ('MH-001', 'Motherhouse Headquarters', '123 Main St, City', 'motherhouse'),
+         ('EDU-001', 'St. Joseph Education Center', '45 School Ave, City', 'education')
+       ON CONFLICT (code) DO NOTHING`
     );
 
-    await connection.commit();
+    await client.query('COMMIT');
   } catch (error) {
-    await connection.rollback();
+    await client.query('ROLLBACK');
     throw error;
   } finally {
     client.release();
@@ -34,14 +37,14 @@ const up = async () => {
 const down = async () => {
   const client = await pool.connect();
   try {
-    await connection.beginTransaction();
+    await client.query('BEGIN');
     await client.query(
-      "DELETE FROM communities WHERE code IN ('MH-001','EDU-001');"
+      "DELETE FROM communities WHERE code IN ('MH-001','EDU-001')"
     );
-    await client.query("DELETE FROM users WHERE username = 'admin';");
-    await connection.commit();
+    await client.query("DELETE FROM users WHERE username = 'admin'");
+    await client.query('COMMIT');
   } catch (error) {
-    await connection.rollback();
+    await client.query('ROLLBACK');
     throw error;
   } finally {
     client.release();

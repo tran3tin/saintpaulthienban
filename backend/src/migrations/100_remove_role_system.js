@@ -5,28 +5,13 @@ async function up() {
   const client = await pool.connect();
 
   try {
-    await connection.beginTransaction();
+    await client.query("BEGIN");
 
     console.log("Starting migration to remove role system...");
 
-    // 1. Remove role_id from users table
-    const checkRoleIdColumn = await client.query(`
-      SELECT COLUMN_NAME 
-      FROM INFORMATION_SCHEMA.COLUMNS 
-      WHERE TABLE_SCHEMA = DATABASE() 
-      AND TABLE_NAME = 'users' 
-      AND COLUMN_NAME = 'role_id'
-    `);
-
-    if (checkRoleIdColumn[0].length > 0) {
-      console.log("Removing role_id column from users table...");
-      await client.query(`
-        ALTER TABLE users 
-        DROP FOREIGN KEY IF EXISTS users_ibfk_1,
-        DROP COLUMN role_id
-      `);
-      console.log("✓ Removed role_id from users");
-    }
+    // 1. Remove role_id from users table (if present)
+    console.log("Removing role_id column from users table (if exists)...");
+    await client.query(`ALTER TABLE users DROP COLUMN IF EXISTS role_id`);
 
     // 2. Drop role_permissions table if exists
     console.log("Dropping role_permissions table...");
@@ -38,10 +23,10 @@ async function up() {
     await client.query("DROP TABLE IF EXISTS roles");
     console.log("✓ Dropped roles table");
 
-    await connection.commit();
+    await client.query("COMMIT");
     console.log("Migration completed successfully!");
   } catch (error) {
-    await connection.rollback();
+    await client.query("ROLLBACK");
     console.error("Migration failed:", error);
     throw error;
   } finally {
@@ -53,44 +38,41 @@ async function down() {
   const client = await pool.connect();
 
   try {
-    await connection.beginTransaction();
+    await client.query("BEGIN");
 
     console.log("Rolling back role system removal...");
 
     // Recreate roles table
     await client.query(`
       CREATE TABLE IF NOT EXISTS roles (
-        id INT PRIMARY KEY AUTO_INCREMENT,
+        id SERIAL PRIMARY KEY,
         name VARCHAR(50) UNIQUE NOT NULL,
         description TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP 
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
     // Recreate role_permissions table
     await client.query(`
       CREATE TABLE IF NOT EXISTS role_permissions (
-        id INT PRIMARY KEY AUTO_INCREMENT,
-        role_id INT NOT NULL,
-        permission_id INT NOT NULL,
+        id SERIAL PRIMARY KEY,
+        role_id INTEGER NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+        permission_id INTEGER NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
-        UNIQUE KEY unique_role_permission (role_id, permission_id)
+        UNIQUE (role_id, permission_id)
       )
     `);
 
     // Add role_id back to users
-    await client.query(`
-      ALTER TABLE users 
-      ADD COLUMN role_id INT,
-      ADD FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE SET NULL
-    `);
+    await client.query(
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS role_id INTEGER REFERENCES roles(id) ON DELETE SET NULL`
+    );
 
-    await connection.commit();
+    await client.query("COMMIT");
     console.log("Rollback completed!");
   } catch (error) {
-    await connection.rollback();
+    await client.query("ROLLBACK");
     console.error("Rollback failed:", error);
     throw error;
   } finally {

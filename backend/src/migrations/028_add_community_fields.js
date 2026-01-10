@@ -4,48 +4,34 @@ const db = require("../config/database");
 const up = async () => {
   const client = await db.getConnection();
   try {
-    // Check and add columns if not exist
     const columnsToAdd = [
       {
         name: "phone",
-        sql: "ALTER TABLE communities ADD COLUMN phone VARCHAR(20) NULL AFTER address",
+        definition: "VARCHAR(20) NULL",
       },
       {
         name: "email",
-        sql: "ALTER TABLE communities ADD COLUMN email VARCHAR(100) NULL AFTER phone",
+        definition: "VARCHAR(100) NULL",
       },
       {
         name: "established_date",
-        sql: "ALTER TABLE communities ADD COLUMN established_date DATE NULL AFTER email",
+        definition: "DATE NULL",
       },
       {
         name: "status",
-        sql: "ALTER TABLE communities ADD COLUMN status VARCHAR(20) DEFAULT 'active' AFTER established_date",
+        definition: "VARCHAR(20) DEFAULT 'active'",
       },
       {
         name: "description",
-        sql: "ALTER TABLE communities ADD COLUMN description TEXT NULL AFTER status",
+        definition: "TEXT NULL",
       },
     ];
 
     for (const col of columnsToAdd) {
-      const [columns] = await connection.execute(
-        `
-        SELECT COLUMN_NAME 
-        FROM INFORMATION_SCHEMA.COLUMNS 
-        WHERE TABLE_SCHEMA = DATABASE() 
-        AND TABLE_NAME = 'communities' 
-        AND COLUMN_NAME = ?
-      `,
-        [col.name]
+      await client.query(
+        `ALTER TABLE communities ADD COLUMN IF NOT EXISTS ${col.name} ${col.definition}`
       );
-
-      if (columns.length === 0) {
-        await connection.execute(col.sql);
-        console.log(`✅ Added column '${col.name}' to communities table`);
-      } else {
-        console.log(`ℹ️ Column '${col.name}' already exists, skipping...`);
-      }
+      console.log(`✅ Ensured column '${col.name}' exists on communities`);
     }
 
     console.log("✅ Migration completed successfully");
@@ -66,21 +52,7 @@ const down = async () => {
     ];
 
     for (const col of columnsToDrop) {
-      const [columns] = await connection.execute(
-        `
-        SELECT COLUMN_NAME 
-        FROM INFORMATION_SCHEMA.COLUMNS 
-        WHERE TABLE_SCHEMA = DATABASE() 
-        AND TABLE_NAME = 'communities' 
-        AND COLUMN_NAME = ?
-      `,
-        [col]
-      );
-
-      if (columns.length > 0) {
-        await connection.execute(`ALTER TABLE communities DROP COLUMN ${col}`);
-        console.log(`✅ Dropped column '${col}' from communities table`);
-      }
+      await client.query(`ALTER TABLE communities DROP COLUMN IF EXISTS ${col}`);
     }
   } finally {
     client.release();

@@ -38,6 +38,9 @@ router.post(
 
 router.post("/logout", authenticateToken, authController.logout);
 
+// Get current user info
+router.get("/me", authenticateToken, authController.getProfile);
+
 router.post(
   "/change-password",
   authenticateToken,

@@ -73,7 +73,8 @@ export const AuthProvider = ({ children }) => {
           // permissions is already an array of permission names from backend
         };
 
-        // Save to localStorage
+        // Save token and user to localStorage
+        localStorage.setItem("token", response.data.token);
         localStorage.setItem("user", JSON.stringify(userData));
         console.log("✅ Login successful:", userData.username);
 

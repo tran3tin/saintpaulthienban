@@ -2,7 +2,7 @@
  * Script to sync sisters.current_community_id from community_assignments
  *
  * Logic:
- * - Lấy community_id từ community_assignments với end_date IS NULL hoặc end_date >= CURDATE()
+ * - Lấy community_id từ community_assignments với end_date IS NULL hoặc end_date >= CURRENT_DATE
  * - Nếu có nhiều assignments, lấy cái có start_date mới nhất
  * - Cập nhật vào sisters.current_community_id
  */
@@ -17,14 +17,14 @@ async function syncCurrentCommunityIds() {
     connection = await db.getConnection();
 
     // Get all current community assignments
-    const [assignments] = await connection.query(`
+    const { rows: assignments } = await connection.query(`
       SELECT 
         ca.sister_id,
         ca.community_id,
         ca.start_date,
         ROW_NUMBER() OVER (PARTITION BY ca.sister_id ORDER BY ca.start_date DESC) as rn
       FROM community_assignments ca
-      WHERE ca.end_date IS NULL OR ca.end_date >= CURDATE()
+      WHERE ca.end_date IS NULL OR ca.end_date >= CURRENT_DATE
     `);
 
     console.log(`📊 Found ${assignments.length} current community assignments`);
@@ -38,16 +38,16 @@ async function syncCurrentCommunityIds() {
     // Update each sister
     let updated = 0;
     for (const assignment of latestAssignments) {
-      const [result] = await connection.query(
+      const result = await connection.query(
         `
-        UPDATE sisters 
-        SET current_community_id = ? 
-        WHERE id = ? AND (current_community_id IS NULL OR current_community_id != ?)
+        UPDATE sisters
+        SET current_community_id = $1
+        WHERE id = $2 AND (current_community_id IS NULL OR current_community_id <> $1)
       `,
-        [assignment.community_id, assignment.sister_id, assignment.community_id]
+        [assignment.community_id, assignment.sister_id]
       );
 
-      if (result.affectedRows > 0) {
+      if (result.rowCount > 0) {
         updated++;
         console.log(
           `   ✅ Sister ${assignment.sister_id} -> Community ${assignment.community_id}`
@@ -56,25 +56,25 @@ async function syncCurrentCommunityIds() {
     }
 
     // Set NULL for sisters without current assignment
-    const [sistersWithoutAssignment] = await connection.query(`
-      SELECT s.id, s.saint_name, s.birth_name
+    const { rows: sistersWithoutAssignment } = await connection.query(`
+      SELECT s.id, s.religious_name, s.birth_name
       FROM sisters s
       WHERE s.current_community_id IS NOT NULL
       AND s.id NOT IN (
         SELECT DISTINCT sister_id FROM community_assignments 
-        WHERE end_date IS NULL OR end_date >= CURDATE()
+        WHERE end_date IS NULL OR end_date >= CURRENT_DATE
       )
     `);
 
     for (const sister of sistersWithoutAssignment) {
       await connection.query(
         `
-        UPDATE sisters SET current_community_id = NULL WHERE id = ?
+        UPDATE sisters SET current_community_id = NULL WHERE id = $1
       `,
         [sister.id]
       );
       console.log(
-        `   ⚠️ Sister ${sister.id} (${sister.saint_name} ${sister.birth_name}) - cleared community (no current assignment)`
+        `   ⚠️ Sister ${sister.id} (${sister.religious_name} ${sister.birth_name}) - cleared community (no current assignment)`
       );
     }
 
@@ -83,10 +83,10 @@ async function syncCurrentCommunityIds() {
     console.log(`   - Cleared: ${sistersWithoutAssignment.length} sisters`);
 
     // Verify
-    const [verifyResult] = await connection.query(`
+    const { rows: verifyResult } = await connection.query(`
       SELECT 
         s.id, 
-        s.saint_name, 
+        s.religious_name, 
         s.birth_name, 
         s.current_community_id,
         c.name as community_name
@@ -99,7 +99,7 @@ async function syncCurrentCommunityIds() {
     console.log(`\n📋 Current state (first 20 sisters):`);
     verifyResult.forEach((s) => {
       console.log(
-        `   ID ${s.id}: ${s.saint_name} ${s.birth_name} -> ${
+        `   ID ${s.id}: ${s.religious_name} ${s.birth_name} -> ${
           s.community_name || "No community"
         }`
       );

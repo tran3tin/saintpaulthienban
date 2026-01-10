@@ -1,31 +1,44 @@
-// Migration: Change current_stage column from ENUM to VARCHAR
+// Migration: Change current_stage column to VARCHAR (PostgreSQL-safe)
 const pool = require("../config/database");
 
-async function up() {
+const up = async () => {
   const client = await pool.connect();
-
   try {
     console.log("Altering current_stage column in sisters table...");
-
-    // Change current_stage from ENUM to VARCHAR to allow custom stages
     await client.query(`
-      ALTER TABLE sisters ALTER COLUMN current_stage TYPE VARCHAR(50) NULL
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_schema = current_schema()
+            AND table_name = 'sisters'
+            AND column_name = 'current_stage'
+        ) THEN
+          ALTER TABLE sisters ALTER COLUMN current_stage TYPE VARCHAR(50);
+        END IF;
+      END $$;
     `);
-
-    console.log("✓ current_stage column altered to VARCHAR(50)");
-    console.log("Migration completed successfully!");
+    console.log("✓ current_stage column ensured as VARCHAR(50)");
   } catch (error) {
     console.error("Migration failed:", error.message);
     throw error;
   } finally {
     client.release();
   }
-}
+};
 
-// Run migration
-up()
-  .then(() => process.exit(0))
-  .catch((err) => {
-    console.error(err);
-    process.exit(1);
-  });
+const down = async () => {
+  // No-op (safe rollback)
+};
+
+module.exports = { up, down };
+
+if (require.main === module) {
+  up()
+    .then(() => process.exit(0))
+    .catch((err) => {
+      console.error(err);
+      process.exit(1);
+    });
+}

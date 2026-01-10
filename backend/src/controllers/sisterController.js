@@ -111,12 +111,12 @@ const buildFilters = ({
   }
 
   if (Number.isInteger(minAge)) {
-    clauses.push("TIMESTAMPDIFF(YEAR, date_of_birth, CURDATE()) >= ?");
+    clauses.push("EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth))::INT >= ?");
     params.push(minAge);
   }
 
   if (Number.isInteger(maxAge)) {
-    clauses.push("TIMESTAMPDIFF(YEAR, date_of_birth, CURDATE()) <= ?");
+    clauses.push("EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth))::INT <= ?");
     params.push(maxAge);
   }
 
@@ -287,7 +287,7 @@ const getSisterById = async (req, res) => {
       SisterModel.getFullProfile(id),
       CommunityAssignmentModel.getCurrentAssignment(id),
       MissionModel.executeQuery(
-        `SELECT * FROM missions WHERE sister_id = ? AND (end_date IS NULL OR end_date >= CURDATE()) ORDER BY start_date DESC LIMIT 1`,
+        `SELECT * FROM missions WHERE sister_id = ? AND (end_date IS NULL OR end_date >= CURRENT_DATE) ORDER BY start_date DESC LIMIT 1`,
         [id]
       ).then((rows) => rows[0] || null),
     ]);
@@ -807,11 +807,11 @@ const searchSisters = async (req, res) => {
       ? parseInt(req.query.maxAge, 10)
       : undefined;
     if (Number.isInteger(minAge)) {
-      filters.push("TIMESTAMPDIFF(YEAR, s.date_of_birth, CURDATE()) >= ?");
+      filters.push("EXTRACT(YEAR FROM AGE(CURRENT_DATE, s.date_of_birth))::INT >= ?");
       params.push(minAge);
     }
     if (Number.isInteger(maxAge)) {
-      filters.push("TIMESTAMPDIFF(YEAR, s.date_of_birth, CURDATE()) <= ?");
+      filters.push("EXTRACT(YEAR FROM AGE(CURRENT_DATE, s.date_of_birth))::INT <= ?");
       params.push(maxAge);
     }
 
@@ -820,11 +820,11 @@ const searchSisters = async (req, res) => {
     const baseQuery = `
       FROM sisters s
       LEFT JOIN community_assignments ca
-        ON ca.sister_id = s.id AND (ca.end_date IS NULL OR ca.end_date >= CURDATE())
+        ON ca.sister_id = s.id AND (ca.end_date IS NULL OR ca.end_date >= CURRENT_DATE)
       LEFT JOIN vocation_journey vj
-        ON vj.sister_id = s.id AND (vj.end_date IS NULL OR vj.end_date >= CURDATE())
+        ON vj.sister_id = s.id AND (vj.end_date IS NULL OR vj.end_date >= CURRENT_DATE)
       LEFT JOIN missions mi
-        ON mi.sister_id = s.id AND (mi.end_date IS NULL OR mi.end_date >= CURDATE())
+        ON mi.sister_id = s.id AND (mi.end_date IS NULL OR mi.end_date >= CURRENT_DATE)
       ${whereClause}
     `;
 

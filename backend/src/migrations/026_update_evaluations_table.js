@@ -6,76 +6,27 @@ async function up() {
   try {
     console.log("Updating evaluations table...");
 
-    // Check existing columns
-    const [columns] = await client.query(
-      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
-       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'evaluations'`
-    );
-    const existingCols = columns.map((c) => c.COLUMN_NAME);
-
-    // Add new columns if not exist
     const columnsToAdd = [
-      {
-        name: "evaluation_type",
-        sql: "ALTER TABLE evaluations ADD COLUMN evaluation_type VARCHAR(50) NULL AFTER sister_id",
-      },
-      {
-        name: "period",
-        sql: "ALTER TABLE evaluations ADD COLUMN period VARCHAR(100) NULL AFTER evaluation_type",
-      },
-      {
-        name: "evaluation_date",
-        sql: "ALTER TABLE evaluations ADD COLUMN evaluation_date DATE NULL AFTER period",
-      },
-      {
-        name: "evaluator",
-        sql: "ALTER TABLE evaluations ADD COLUMN evaluator VARCHAR(255) NULL AFTER evaluation_date",
-      },
-      {
-        name: "spiritual_life",
-        sql: "ALTER TABLE evaluations ADD COLUMN spiritual_life SMALLINTEGER NULL AFTER evaluator",
-      },
-      {
-        name: "community_life",
-        sql: "ALTER TABLE evaluations ADD COLUMN community_life SMALLINTEGER NULL AFTER spiritual_life",
-      },
-      {
-        name: "apostolic_work",
-        sql: "ALTER TABLE evaluations ADD COLUMN apostolic_work SMALLINTEGER NULL AFTER community_life",
-      },
-      {
-        name: "personal_development",
-        sql: "ALTER TABLE evaluations ADD COLUMN personal_development SMALLINTEGER NULL AFTER apostolic_work",
-      },
-      {
-        name: "overall_rating",
-        sql: "ALTER TABLE evaluations ADD COLUMN overall_rating SMALLINTEGER NULL AFTER personal_development",
-      },
-      {
-        name: "strengths",
-        sql: "ALTER TABLE evaluations ADD COLUMN strengths TEXT NULL AFTER overall_rating",
-      },
-      {
-        name: "weaknesses",
-        sql: "ALTER TABLE evaluations ADD COLUMN weaknesses TEXT NULL AFTER strengths",
-      },
-      {
-        name: "notes",
-        sql: "ALTER TABLE evaluations ADD COLUMN notes TEXT NULL AFTER recommendations",
-      },
-      {
-        name: "documents",
-        sql: "ALTER TABLE evaluations ADD COLUMN documents JSONB NULL AFTER notes",
-      },
+      { name: "evaluation_type", definition: "VARCHAR(50) NULL" },
+      { name: "period", definition: "VARCHAR(100) NULL" },
+      { name: "evaluation_date", definition: "DATE NULL" },
+      { name: "evaluator", definition: "VARCHAR(255) NULL" },
+      { name: "spiritual_life", definition: "SMALLINT NULL" },
+      { name: "community_life", definition: "SMALLINT NULL" },
+      { name: "apostolic_work", definition: "SMALLINT NULL" },
+      { name: "personal_development", definition: "SMALLINT NULL" },
+      { name: "overall_rating", definition: "SMALLINT NULL" },
+      { name: "strengths", definition: "TEXT NULL" },
+      { name: "weaknesses", definition: "TEXT NULL" },
+      { name: "notes", definition: "TEXT NULL" },
+      { name: "documents", definition: "JSONB NULL" },
     ];
 
     for (const col of columnsToAdd) {
-      if (!existingCols.includes(col.name)) {
-        console.log(`Adding column: ${col.name}`);
-        await client.query(col.sql);
-      } else {
-        console.log(`Column ${col.name} already exists`);
-      }
+      console.log(`Ensuring column exists: ${col.name}`);
+      await client.query(
+        `ALTER TABLE evaluations ADD COLUMN IF NOT EXISTS ${col.name} ${col.definition}`
+      );
     }
 
     console.log(

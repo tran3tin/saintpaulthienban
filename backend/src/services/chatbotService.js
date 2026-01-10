@@ -680,11 +680,11 @@ class ChatbotService {
       if (sisters.length > 0) {
         const sister = sisters[0];
 
-        // Get journey records - with COLLATE fix for mixed collations
+        // Get journey records
         const [journeys] = await db.execute(
           `SELECT vj.*, js.name as stage_name, js.color as stage_color
            FROM vocation_journey vj
-           LEFT JOIN journey_stages js ON vj.stage COLLATE utf8mb4_unicode_ci = js.code COLLATE utf8mb4_unicode_ci
+           LEFT JOIN journey_stages js ON vj.stage = js.code
            WHERE vj.sister_id = ?
            ORDER BY vj.start_date ASC`,
           [entities.sister_id]
@@ -733,12 +733,12 @@ class ChatbotService {
         });
       }
     } else {
-      // General journey statistics - with COLLATE fix
+      // General journey statistics
       const [stageStats] = await db.execute(
         `SELECT js.name as stage_name, js.code, COUNT(DISTINCT vj.sister_id) as count
          FROM journey_stages js
-         LEFT JOIN vocation_journey vj ON js.code COLLATE utf8mb4_unicode_ci = vj.stage COLLATE utf8mb4_unicode_ci AND vj.end_date IS NULL
-         WHERE js.is_active = 1
+         LEFT JOIN vocation_journey vj ON js.code = vj.stage AND vj.end_date IS NULL
+         WHERE js.is_active = true
          GROUP BY js.id, js.name, js.code
          ORDER BY js.display_order`
       );
@@ -819,12 +819,12 @@ class ChatbotService {
         contextText += `- Địa chỉ: ${sister.community_address}\n`;
       }
 
-      // 2. Get vocation journey - with COLLATE fix
+      // 2. Get vocation journey
       try {
         const [journeys] = await db.execute(
           `SELECT vj.*, js.name as stage_name
            FROM vocation_journey vj
-           LEFT JOIN journey_stages js ON vj.stage COLLATE utf8mb4_unicode_ci = js.code COLLATE utf8mb4_unicode_ci
+           LEFT JOIN journey_stages js ON vj.stage = js.code
            WHERE vj.sister_id = ?
            ORDER BY vj.start_date DESC`,
           [entities.sister_id]
@@ -1165,7 +1165,7 @@ class ChatbotService {
     const [byStage] = await db.execute(
       `SELECT js.name as stage_name, COUNT(DISTINCT vj.sister_id) as count
        FROM journey_stages js
-       LEFT JOIN vocation_journey vj ON js.code COLLATE utf8mb4_unicode_ci = vj.stage COLLATE utf8mb4_unicode_ci AND vj.end_date IS NULL
+       LEFT JOIN vocation_journey vj ON js.code = vj.stage AND vj.end_date IS NULL
        GROUP BY js.id, js.name
        ORDER BY js.display_order`
     );
@@ -1496,8 +1496,8 @@ Bạn có thể hỏi tôi về thông tin nữ tu, hành trình ơn gọi, cộ
         const [byStage] = await db.execute(
           `SELECT js.name as stage_name, COUNT(DISTINCT vj.sister_id) as count
            FROM journey_stages js
-           LEFT JOIN vocation_journey vj ON js.code COLLATE utf8mb4_unicode_ci = vj.stage COLLATE utf8mb4_unicode_ci AND vj.end_date IS NULL
-           WHERE js.is_active = 1
+           LEFT JOIN vocation_journey vj ON js.code = vj.stage AND vj.end_date IS NULL
+           WHERE js.is_active = true
            GROUP BY js.id, js.name
            ORDER BY js.display_order`
         );

@@ -27,6 +27,8 @@ const upQuery = `
     RETURN NEW;
   END;
   $$ LANGUAGE plpgsql;
+
+  DROP TRIGGER IF EXISTS health_records_updated_at_trigger ON health_records;
   
   CREATE TRIGGER health_records_updated_at_trigger
   BEFORE UPDATE ON health_records

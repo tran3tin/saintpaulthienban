@@ -28,7 +28,7 @@ class PostModel extends BaseModel {
 
     if (search) {
       whereConditions.push(
-        "(p.title LIKE ? OR p.content LIKE ? OR p.summary LIKE ?)"
+        "(p.title ILIKE ? OR p.content ILIKE ? OR p.summary ILIKE ?)"
       );
       params.push(`%${search}%`, `%${search}%`, `%${search}%`);
     }
@@ -39,9 +39,9 @@ class PostModel extends BaseModel {
     }
 
     if (status === "pinned") {
-      whereConditions.push("p.is_pinned = 1");
+      whereConditions.push("p.is_pinned = TRUE");
     } else if (status === "important") {
-      whereConditions.push("p.is_important = 1");
+      whereConditions.push("p.is_important = TRUE");
     }
 
     if (exclude) {
@@ -50,7 +50,7 @@ class PostModel extends BaseModel {
     }
 
     // Exclude pinned posts from regular list
-    whereConditions.push("p.is_pinned = 0");
+    whereConditions.push("p.is_pinned = FALSE");
 
     let orderBy = "p.created_at DESC";
     if (sortBy === "oldest") {
@@ -74,7 +74,7 @@ class PostModel extends BaseModel {
     const query = `
       SELECT 
         p.*,
-        u.full_name as author_name,
+        u.username as author_name,
         u.email as author_email
       FROM posts p
       LEFT JOIN users u ON p.author_id = u.id
@@ -85,11 +85,11 @@ class PostModel extends BaseModel {
 
     const posts = await this.executeQuery(query, [...params, limit, offset]);
 
-    // Parse tags JSON
+    // Parse tags/attachments for legacy string payloads (JSONB will already be objects)
     posts.forEach((post) => {
       if (post.tags) {
         try {
-          post.tags = JSON.parse(post.tags);
+          post.tags = typeof post.tags === "string" ? JSON.parse(post.tags) : post.tags;
         } catch (e) {
           post.tags = [];
         }
@@ -98,7 +98,10 @@ class PostModel extends BaseModel {
       }
       if (post.attachments) {
         try {
-          post.attachments = JSON.parse(post.attachments);
+          post.attachments =
+            typeof post.attachments === "string"
+              ? JSON.parse(post.attachments)
+              : post.attachments;
         } catch (e) {
           post.attachments = [];
         }
@@ -122,11 +125,11 @@ class PostModel extends BaseModel {
     const query = `
       SELECT 
         p.*,
-        u.full_name as author_name,
+        u.username as author_name,
         u.email as author_email
       FROM posts p
       LEFT JOIN users u ON p.author_id = u.id
-      WHERE p.is_pinned = 1 AND p.deleted_at IS NULL
+      WHERE p.is_pinned = TRUE AND p.deleted_at IS NULL
       ORDER BY p.updated_at DESC
     `;
 
@@ -135,7 +138,7 @@ class PostModel extends BaseModel {
     posts.forEach((post) => {
       if (post.tags) {
         try {
-          post.tags = JSON.parse(post.tags);
+          post.tags = typeof post.tags === "string" ? JSON.parse(post.tags) : post.tags;
         } catch (e) {
           post.tags = [];
         }
@@ -144,7 +147,10 @@ class PostModel extends BaseModel {
       }
       if (post.attachments) {
         try {
-          post.attachments = JSON.parse(post.attachments);
+          post.attachments =
+            typeof post.attachments === "string"
+              ? JSON.parse(post.attachments)
+              : post.attachments;
         } catch (e) {
           post.attachments = [];
         }
@@ -163,7 +169,7 @@ class PostModel extends BaseModel {
     const query = `
       SELECT 
         p.*,
-        u.full_name as author_name,
+        u.username as author_name,
         u.email as author_email
       FROM posts p
       LEFT JOIN users u ON p.author_id = u.id
@@ -176,7 +182,7 @@ class PostModel extends BaseModel {
     if (post) {
       if (post.tags) {
         try {
-          post.tags = JSON.parse(post.tags);
+          post.tags = typeof post.tags === "string" ? JSON.parse(post.tags) : post.tags;
         } catch (e) {
           post.tags = [];
         }
@@ -185,7 +191,10 @@ class PostModel extends BaseModel {
       }
       if (post.attachments) {
         try {
-          post.attachments = JSON.parse(post.attachments);
+          post.attachments =
+            typeof post.attachments === "string"
+              ? JSON.parse(post.attachments)
+              : post.attachments;
         } catch (e) {
           post.attachments = [];
         }

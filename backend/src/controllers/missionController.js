@@ -60,9 +60,9 @@ const getAllMissions = async (req, res) => {
 
     // Filter by status (active/completed based on end_date)
     if (status === "active") {
-      whereClauses.push("(m.end_date IS NULL OR m.end_date >= CURDATE())");
+      whereClauses.push("(m.end_date IS NULL OR m.end_date >= CURRENT_DATE)");
     } else if (status === "completed") {
-      whereClauses.push("(m.end_date IS NOT NULL AND m.end_date < CURDATE())");
+      whereClauses.push("(m.end_date IS NOT NULL AND m.end_date < CURRENT_DATE)");
     }
 
     // Search across multiple fields
@@ -448,7 +448,7 @@ const getSistersByMissionField = async (req, res) => {
 
     const whereClauses = [
       "m.field = ?",
-      "(m.end_date IS NULL OR m.end_date >= CURDATE())",
+      "(m.end_date IS NULL OR m.end_date >= CURRENT_DATE)",
     ];
     const params = [field];
 

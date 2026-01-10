@@ -47,6 +47,13 @@ npm install
 npm run dev
 ```
 
+Chuẩn bị database (PostgreSQL):
+- Tạo database `hr_records` (ví dụ bằng pgAdmin)
+- Cấu hình `backend/.env` bằng `DATABASE_URL` hoặc `PGHOST/PGUSER/PGPASSWORD/PGDATABASE`
+- Chạy migrations: `node src/migrations/runMigrations.js`
+
+Ghi chú: file `backend/db/init.sql` là script MySQL cũ; dùng `backend/db/init_postgres.sql` để tham khảo khi setup PostgreSQL.
+
 ### Frontend
 ```bash
 cd frontend
@@ -63,7 +70,7 @@ npm run dev
 
 ### Backend
 - Node.js + Express 5
-- MySQL
+- PostgreSQL (pg)
 - JWT Authentication
 - bcryptjs, multer, exceljs, pdfkit
 

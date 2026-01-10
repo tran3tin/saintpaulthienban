@@ -170,7 +170,7 @@ const getAllCourses = async (req, res) => {
     const params = [];
 
     if (req.query.year) {
-      filters.push("(YEAR(tc.start_date) = ? OR YEAR(tc.end_date) = ?)");
+      filters.push("(EXTRACT(YEAR FROM tc.start_date) = ? OR EXTRACT(YEAR FROM tc.end_date) = ?)");
       params.push(req.query.year, req.query.year);
     }
 

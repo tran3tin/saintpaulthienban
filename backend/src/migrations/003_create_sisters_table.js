@@ -39,6 +39,8 @@ const upQuery = `
     RETURN NEW;
   END;
   $$ LANGUAGE plpgsql;
+
+  DROP TRIGGER IF EXISTS sisters_updated_at_trigger ON sisters;
   
   CREATE TRIGGER sisters_updated_at_trigger
   BEFORE UPDATE ON sisters

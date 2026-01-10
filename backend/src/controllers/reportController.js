@@ -66,7 +66,7 @@ const fetchAgeStats = async () => {
         SUM(CASE WHEN age >= 70 THEN 1 ELSE 0 END) AS over_70,
         SUM(1) AS total
       FROM (
-        SELECT TIMESTAMPDIFF(YEAR, date_of_birth, CURDATE()) AS age
+        SELECT EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth))::INT AS age
         FROM sisters
         WHERE status = 'active' AND date_of_birth IS NOT NULL
       ) age_data`
@@ -131,7 +131,7 @@ const fetchCommunityStats = async () => {
      FROM communities c
      LEFT JOIN community_assignments ca
        ON ca.community_id = c.id
-       AND (ca.end_date IS NULL OR ca.end_date >= CURDATE())
+       AND (ca.end_date IS NULL OR ca.end_date >= CURRENT_DATE)
      GROUP BY c.id, c.name
      ORDER BY total_members DESC, c.name ASC`
   );
@@ -141,7 +141,7 @@ const fetchCommunityStats = async () => {
      FROM communities c
      LEFT JOIN community_assignments ca
        ON ca.community_id = c.id
-       AND (ca.end_date IS NULL OR ca.end_date >= CURDATE())
+       AND (ca.end_date IS NULL OR ca.end_date >= CURRENT_DATE)
      WHERE ca.role IS NOT NULL
      GROUP BY c.id, c.name, ca.role
      ORDER BY c.name, total DESC`
@@ -194,7 +194,7 @@ const fetchMissionStats = async () => {
     `SELECT field, COUNT(*) AS total
      FROM missions
      WHERE field IS NOT NULL
-       AND (end_date IS NULL OR end_date >= CURDATE())
+       AND (end_date IS NULL OR end_date >= CURRENT_DATE)
      GROUP BY field
      ORDER BY total DESC`
   );
@@ -266,17 +266,17 @@ const fetchStatusBreakdown = async () => {
 const fetchTrendData = async () => {
   const [entryRows, departureRows] = await Promise.all([
     SisterModel.executeQuery(
-      `SELECT YEAR(created_at) AS year, COUNT(*) AS total
+      `SELECT EXTRACT(YEAR FROM created_at) AS year, COUNT(*) AS total
        FROM sisters
        WHERE created_at IS NOT NULL
-       GROUP BY YEAR(created_at)
+       GROUP BY EXTRACT(YEAR FROM created_at)
        ORDER BY year ASC`
     ),
     DepartureRecordModel.executeQuery(
-      `SELECT YEAR(departure_date) AS year, COUNT(*) AS total
+      `SELECT EXTRACT(YEAR FROM departure_date) AS year, COUNT(*) AS total
        FROM departure_records
        WHERE departure_date IS NOT NULL
-       GROUP BY YEAR(departure_date)
+       GROUP BY EXTRACT(YEAR FROM departure_date)
        ORDER BY year ASC`
     ),
   ]);
@@ -811,8 +811,8 @@ const getSisterReport = async (req, res) => {
       ),
       SisterModel.executeQuery(`
         SELECT COUNT(*) as total FROM sisters 
-        WHERE MONTH(created_at) = MONTH(CURDATE()) 
-        AND YEAR(created_at) = YEAR(CURDATE())
+        WHERE EXTRACT(MONTH FROM created_at) = EXTRACT(MONTH FROM CURRENT_DATE) 
+        AND EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM CURRENT_DATE)
       `),
     ]);
 
@@ -826,7 +826,7 @@ const getSisterReport = async (req, res) => {
         SUM(CASE WHEN age > 60 THEN 1 ELSE 0 END) as age_60_plus,
         AVG(age) as avg_age
       FROM (
-        SELECT TIMESTAMPDIFF(YEAR, date_of_birth, CURDATE()) as age
+        SELECT EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth))::INT as age
         FROM sisters WHERE date_of_birth IS NOT NULL AND status = 'active'
       ) ages
     `);
@@ -845,10 +845,10 @@ const getSisterReport = async (req, res) => {
         SUM(CASE WHEN vj.stage = 'postulant' THEN 1 ELSE 0 END) as postulant,
         SUM(CASE WHEN vj.stage = 'temporary_vows' THEN 1 ELSE 0 END) as temporary,
         SUM(CASE WHEN vj.stage = 'perpetual_vows' THEN 1 ELSE 0 END) as perpetual,
-        AVG(TIMESTAMPDIFF(YEAR, s.date_of_birth, CURDATE())) as averageAge
+        AVG(EXTRACT(YEAR FROM AGE(CURRENT_DATE, s.date_of_birth))::INT) as averageAge
       FROM communities c
       LEFT JOIN community_assignments ca ON ca.community_id = c.id 
-        AND (ca.end_date IS NULL OR ca.end_date >= CURDATE())
+        AND (ca.end_date IS NULL OR ca.end_date >= CURRENT_DATE)
       LEFT JOIN sisters s ON s.id = ca.sister_id AND s.status = 'active'
       LEFT JOIN (
         SELECT vj1.sister_id, vj1.stage
@@ -944,12 +944,12 @@ const getJourneyReport = async (req, res) => {
     // Monthly transitions
     const transitionRows = await VocationJourneyModel.executeQuery(`
       SELECT 
-        MONTH(start_date) as month,
+        EXTRACT(MONTH FROM start_date) as month,
         stage,
         COUNT(*) as total
       FROM vocation_journey
-      WHERE YEAR(start_date) = YEAR(CURDATE())
-      GROUP BY MONTH(start_date), stage
+      WHERE EXTRACT(YEAR FROM start_date) = EXTRACT(YEAR FROM CURRENT_DATE)
+      GROUP BY EXTRACT(MONTH FROM start_date), stage
       ORDER BY month
     `);
 
@@ -994,7 +994,7 @@ const getJourneyReport = async (req, res) => {
     const durationRows = await VocationJourneyModel.executeQuery(`
       SELECT 
         stage,
-        AVG(DATEDIFF(COALESCE(end_date, CURDATE()), start_date)) as avg_days
+        AVG(DATEDIFF(COALESCE(end_date, CURRENT_DATE), start_date)) as avg_days
       FROM vocation_journey
       WHERE start_date IS NOT NULL
       GROUP BY stage
@@ -1167,7 +1167,7 @@ const getHealthReport = async (req, res) => {
     // Total checkups this year
     const checkupRows = await SisterModel.executeQuery(`
       SELECT COUNT(*) as total FROM health_records
-      WHERE YEAR(checkup_date) = YEAR(CURDATE())
+      WHERE EXTRACT(YEAR FROM checkup_date) = EXTRACT(YEAR FROM CURRENT_DATE)
     `);
 
     // Sisters needing monitoring (poor or moderate health)
@@ -1196,18 +1196,18 @@ const getHealthReport = async (req, res) => {
     // Monthly checkup trend
     const monthlyCheckups = await SisterModel.executeQuery(`
       SELECT 
-        MONTH(checkup_date) as month,
+        EXTRACT(MONTH FROM checkup_date) as month,
         COUNT(*) as total
       FROM health_records
-      WHERE YEAR(checkup_date) = YEAR(CURDATE())
-      GROUP BY MONTH(checkup_date)
+      WHERE EXTRACT(YEAR FROM checkup_date) = EXTRACT(YEAR FROM CURRENT_DATE)
+      GROUP BY EXTRACT(MONTH FROM checkup_date)
       ORDER BY month
     `);
 
     // Sisters on leave/absence
     const absenceRows = await DepartureRecordModel.executeQuery(`
       SELECT COUNT(*) as total FROM departure_records
-      WHERE return_date IS NULL OR return_date >= CURDATE()
+      WHERE return_date IS NULL OR return_date >= CURRENT_DATE
     `);
 
     // Community health breakdown
@@ -1220,7 +1220,7 @@ const getHealthReport = async (req, res) => {
         SUM(CASE WHEN hr.general_health = 'weak' THEN 1 ELSE 0 END) as needAttention
       FROM communities c
       LEFT JOIN community_assignments ca ON ca.community_id = c.id 
-        AND (ca.end_date IS NULL OR ca.end_date >= CURDATE())
+        AND (ca.end_date IS NULL OR ca.end_date >= CURRENT_DATE)
       LEFT JOIN health_records hr ON hr.sister_id = ca.sister_id
       LEFT JOIN (
         SELECT sister_id, MAX(checkup_date) as max_date
@@ -1272,7 +1272,7 @@ const getHealthReport = async (req, res) => {
         d.contact_phone
       FROM departure_records d
       LEFT JOIN sisters s ON d.sister_id = s.id
-      WHERE d.return_date IS NULL OR d.return_date >= CURDATE()
+      WHERE d.return_date IS NULL OR d.return_date >= CURRENT_DATE
       ORDER BY d.departure_date DESC
       LIMIT 10
     `);
@@ -1352,11 +1352,11 @@ const getEvaluationReport = async (req, res) => {
     // Monthly average scores
     const monthlyRows = await EvaluationModel.executeQuery(`
       SELECT 
-        MONTH(COALESCE(evaluation_date, created_at)) as month,
+        EXTRACT(MONTH FROM COALESCE(evaluation_date, created_at)) as month,
         AVG((COALESCE(spiritual_life_score,0) + COALESCE(community_life_score,0) + COALESCE(mission_score,0) + COALESCE(personality_score,0) + COALESCE(obedience_score,0)) / 5) as avg_score
       FROM evaluations
-      WHERE YEAR(COALESCE(evaluation_date, created_at)) = YEAR(CURDATE())
-      GROUP BY MONTH(COALESCE(evaluation_date, created_at))
+      WHERE EXTRACT(YEAR FROM COALESCE(evaluation_date, created_at)) = EXTRACT(YEAR FROM CURRENT_DATE)
+      GROUP BY EXTRACT(MONTH FROM COALESCE(evaluation_date, created_at))
       ORDER BY month
     `);
 
@@ -1388,8 +1388,8 @@ const getEvaluationReport = async (req, res) => {
     // Count all evaluations (no status column in legacy schema)
     const pendingRows = await EvaluationModel.executeQuery(`
       SELECT COUNT(*) as total FROM evaluations
-      WHERE YEAR(COALESCE(evaluation_date, created_at)) = YEAR(CURDATE())
-      AND MONTH(COALESCE(evaluation_date, created_at)) >= MONTH(CURDATE())
+      WHERE EXTRACT(YEAR FROM COALESCE(evaluation_date, created_at)) = EXTRACT(YEAR FROM CURRENT_DATE)
+      AND EXTRACT(MONTH FROM COALESCE(evaluation_date, created_at)) >= EXTRACT(MONTH FROM CURRENT_DATE)
     `);
 
     // Community breakdown
@@ -1401,7 +1401,7 @@ const getEvaluationReport = async (req, res) => {
         SUM(CASE WHEN (COALESCE(e.spiritual_life_score,0) + COALESCE(e.community_life_score,0) + COALESCE(e.mission_score,0) + COALESCE(e.personality_score,0) + COALESCE(e.obedience_score,0)) / 5 >= 7.5 THEN 1 ELSE 0 END) as goodCount
       FROM communities c
       LEFT JOIN community_assignments ca ON ca.community_id = c.id 
-        AND (ca.end_date IS NULL OR ca.end_date >= CURDATE())
+        AND (ca.end_date IS NULL OR ca.end_date >= CURRENT_DATE)
       LEFT JOIN evaluations e ON e.sister_id = ca.sister_id
       GROUP BY c.id, c.name
       ORDER BY avgScore DESC
@@ -1473,11 +1473,11 @@ const fetchMonthlyGrowth = async () => {
   try {
     const rows = await SisterModel.executeQuery(`
       SELECT 
-        MONTH(created_at) as month,
+        EXTRACT(MONTH FROM created_at) as month,
         COUNT(*) as total
       FROM sisters
-      WHERE YEAR(created_at) = YEAR(CURDATE())
-      GROUP BY MONTH(created_at)
+      WHERE EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM CURRENT_DATE)
+      GROUP BY EXTRACT(MONTH FROM created_at)
       ORDER BY month
     `);
 

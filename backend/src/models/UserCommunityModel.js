@@ -40,15 +40,20 @@ class UserCommunityModel extends BaseModel {
   async grantCommunities(userId, communityIds, grantedBy) {
     if (!communityIds || communityIds.length === 0) return;
 
-    const values = communityIds.map((commId) => [userId, commId, grantedBy]);
-
-    const query = `
-      INSERT INTO ${this.tableName} (user_id, community_id, granted_by)
-      VALUES ?
-      ON DUPLICATE KEY UPDATE granted_at = CURRENT_TIMESTAMP, granted_by = VALUES(granted_by)
-    `;
-
-    return this.executeQuery(query, [values]);
+    // Use individual inserts for PostgreSQL compatibility
+    const results = [];
+    for (const commId of communityIds) {
+      const query = `
+        INSERT INTO ${this.tableName} (user_id, community_id, granted_by)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (user_id, community_id) DO UPDATE SET 
+          granted_at = CURRENT_TIMESTAMP, 
+          granted_by = EXCLUDED.granted_by
+      `;
+      const result = await this.executeQuery(query, [userId, commId, grantedBy]);
+      results.push(result);
+    }
+    return results;
   }
 
   /**
@@ -57,10 +62,10 @@ class UserCommunityModel extends BaseModel {
   async revokeCommunities(userId, communityIds) {
     if (!communityIds || communityIds.length === 0) return;
 
-    const placeholders = communityIds.map(() => "?").join(",");
+    const placeholders = communityIds.map((_, i) => `$${i + 2}`).join(",");
     const query = `
       DELETE FROM ${this.tableName} 
-      WHERE user_id = ? AND community_id IN (${placeholders})
+      WHERE user_id = $1 AND community_id IN (${placeholders})
     `;
 
     return this.executeQuery(query, [userId, ...communityIds]);

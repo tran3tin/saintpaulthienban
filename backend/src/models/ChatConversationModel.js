@@ -130,7 +130,7 @@ class ChatConversationModel {
         AVG(CASE WHEN is_helpful = 1 THEN 1 WHEN is_helpful = 0 THEN 0 END) as helpful_rate
       FROM chat_conversations
       WHERE user_id = ? 
-      AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+      AND created_at >= NOW() - INTERVAL '? days'
     `;
 
     const [rows] = await db.execute(query, [userId, days]);
@@ -150,7 +150,7 @@ class ChatConversationModel {
         SUM(cost) as total_cost,
         AVG(CASE WHEN is_helpful = 1 THEN 1 WHEN is_helpful = 0 THEN 0 END) as helpful_rate
       FROM chat_conversations
-      WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+      WHERE created_at >= NOW() - INTERVAL '? days'
     `;
 
     const [rows] = await db.execute(query, [days]);
@@ -167,7 +167,7 @@ class ChatConversationModel {
         COUNT(*) as count
       FROM chat_conversations
       WHERE intent IS NOT NULL
-      AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+      AND created_at >= NOW() - INTERVAL '? days'
       GROUP BY intent
       ORDER BY count DESC
       LIMIT ?
@@ -205,7 +205,7 @@ class ChatConversationModel {
   static async cleanOldConversations(days = 90) {
     const query = `
       DELETE FROM chat_conversations 
-      WHERE created_at < DATE_SUB(NOW(), INTERVAL ? DAY)
+      WHERE created_at < NOW() - INTERVAL '? days'
     `;
 
     const [result] = await db.execute(query, [days]);

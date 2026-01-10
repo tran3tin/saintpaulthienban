@@ -22,7 +22,7 @@ class JourneyStageModel extends BaseModel {
   }
 
   async getActiveStages() {
-    const sql = `SELECT * FROM ${this.tableName} WHERE is_active = 1 ORDER BY display_order ASC`;
+    const sql = `SELECT * FROM ${this.tableName} WHERE is_active = true ORDER BY display_order ASC`;
     return this.executeQuery(sql, []);
   }
 

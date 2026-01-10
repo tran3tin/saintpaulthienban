@@ -20,6 +20,8 @@ const upQuery = `
     RETURN NEW;
   END;
   $$ LANGUAGE plpgsql;
+
+  DROP TRIGGER IF EXISTS communities_updated_at_trigger ON communities;
   
   CREATE TRIGGER communities_updated_at_trigger
   BEFORE UPDATE ON communities
