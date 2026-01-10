@@ -2,38 +2,57 @@ const pool = require("../config/database");
 
 const upQuery = `
   CREATE TABLE IF NOT EXISTS users (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     email VARCHAR(120) NOT NULL UNIQUE,
-    role ENUM('admin','superior_general','superior_provincial','superior_community','secretary','viewer') NOT NULL DEFAULT 'viewer',
-    last_login DATETIME NULL,
-    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    role VARCHAR(50) NOT NULL DEFAULT 'viewer' CHECK (role IN ('admin','superior_general','superior_provincial','superior_community','secretary','viewer')),
+    last_login TIMESTAMP NULL,
+    is_active SMALLINT NOT NULL DEFAULT 1,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_users_role (role),
-    INDEX idx_users_active (is_active)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    updated_at TIMESTAMP NULL DEFAULT NULL
+  );
+  
+  CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+  CREATE INDEX IF NOT EXISTS idx_users_active ON users(is_active);
+  
+  -- Trigger to auto-update updated_at
+  CREATE OR REPLACE FUNCTION update_users_updated_at()
+  RETURNS TRIGGER AS $$
+  BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+  END;
+  $$ LANGUAGE plpgsql;
+  
+  CREATE TRIGGER users_updated_at_trigger
+  BEFORE UPDATE ON users
+  FOR EACH ROW
+  EXECUTE FUNCTION update_users_updated_at();
 `;
 
-const downQuery = "DROP TABLE IF EXISTS users;";
+const downQuery = `
+  DROP TRIGGER IF EXISTS users_updated_at_trigger ON users;
+  DROP FUNCTION IF EXISTS update_users_updated_at();
+  DROP TABLE IF EXISTS users;
+`;
 
 module.exports = {
   name: "001_create_users_table",
   up: async () => {
-    const connection = await pool.getConnection();
+    const client = await pool.connect();
     try {
-      await connection.query(upQuery);
+      await client.query(upQuery);
     } finally {
-      connection.release();
+      client.release();
     }
   },
   down: async () => {
-    const connection = await pool.getConnection();
+    const client = await pool.connect();
     try {
-      await connection.query(downQuery);
+      await client.query(downQuery);
     } finally {
-      connection.release();
+      client.release();
     }
   },
 };

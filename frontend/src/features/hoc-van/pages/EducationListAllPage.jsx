@@ -161,7 +161,7 @@ const EducationListAllPage = () => {
         </Badge>
       );
     }
-    
+
     // Fallback to translations if level not found in levels array
     const vietnameseName = levelTranslations[levelCode] || levelCode || "Khác";
     return <Badge bg="secondary">{vietnameseName}</Badge>;
