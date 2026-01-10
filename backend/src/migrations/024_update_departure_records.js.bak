@@ -8,10 +8,10 @@ const upQueries = [
   `ALTER TABLE departure_records ADD COLUMN destination VARCHAR(255) NULL AFTER return_date`,
   `ALTER TABLE departure_records ADD COLUMN contact_phone VARCHAR(50) NULL AFTER destination`,
   `ALTER TABLE departure_records ADD COLUMN contact_address TEXT NULL AFTER contact_phone`,
-  `ALTER TABLE departure_records ADD COLUMN approved_by INTEGER NULL AFTER contact_address`,
+  `ALTER TABLE departure_records ADD COLUMN approved_by INT UNSIGNED NULL AFTER contact_address`,
   `ALTER TABLE departure_records ADD COLUMN notes TEXT NULL AFTER approved_by`,
-  `ALTER TABLE departure_records ADD COLUMN documents JSONB NULL AFTER notes`,
-  `ALTER TABLE departure_records ALTER COLUMN stage_at_departure TYPE VARCHAR(50) CHECK (column_name IN ('inquiry','postulant','aspirant','novice','temporary_vows','perpetual_vows','left')) NULL`,
+  `ALTER TABLE departure_records ADD COLUMN documents JSON NULL AFTER notes`,
+  `ALTER TABLE departure_records MODIFY COLUMN stage_at_departure ENUM('inquiry','postulant','aspirant','novice','temporary_vows','perpetual_vows','left') NULL`,
 ];
 
 const downQueries = [
@@ -24,17 +24,17 @@ const downQueries = [
   `ALTER TABLE departure_records DROP COLUMN approved_by`,
   `ALTER TABLE departure_records DROP COLUMN notes`,
   `ALTER TABLE departure_records DROP COLUMN documents`,
-  `ALTER TABLE departure_records ALTER COLUMN stage_at_departure TYPE VARCHAR(50) NOT NULL CHECK (column_name IN ('inquiry','postulant','aspirant','novice','temporary_vows','perpetual_vows','left'))`,
+  `ALTER TABLE departure_records MODIFY COLUMN stage_at_departure ENUM('inquiry','postulant','aspirant','novice','temporary_vows','perpetual_vows','left') NOT NULL`,
 ];
 
 module.exports = {
   name: "024_update_departure_records",
   up: async () => {
-    const client = await pool.connect();
+    const connection = await pool.getConnection();
     try {
       for (const query of upQueries) {
         try {
-          await client.query(query);
+          await connection.query(query);
           console.log("  ✓ " + query.substring(0, 60) + "...");
         } catch (err) {
           // Ignore "Duplicate column" errors (column already exists)
@@ -44,21 +44,21 @@ module.exports = {
         }
       }
     } finally {
-      client.release();
+      connection.release();
     }
   },
   down: async () => {
-    const client = await pool.connect();
+    const connection = await pool.getConnection();
     try {
       for (const query of downQueries) {
         try {
-          await client.query(query);
+          await connection.query(query);
         } catch (err) {
           console.log("  ⚠ Skipped: " + err.message);
         }
       }
     } finally {
-      client.release();
+      connection.release();
     }
   },
 };

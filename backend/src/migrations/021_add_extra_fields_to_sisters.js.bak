@@ -4,7 +4,7 @@
 const pool = require("../config/database");
 
 const up = async () => {
-  const client = await pool.connect();
+  const connection = await pool.getConnection();
   try {
     console.log("Adding extra fields to sisters table...");
 
@@ -88,7 +88,7 @@ const up = async () => {
       .query(
         `
       ALTER TABLE sisters 
-      ADD COLUMN IF NOT EXISTS current_stage VARCHAR(50) CHECK (column_name IN ('inquiry','postulant','aspirant','novice','temporary_vows','perpetual_vows','left')) NULL AFTER status
+      ADD COLUMN IF NOT EXISTS current_stage ENUM('inquiry','postulant','aspirant','novice','temporary_vows','perpetual_vows','left') NULL AFTER status
     `
       )
       .catch(() => console.log("current_stage column might already exist"));
@@ -98,7 +98,7 @@ const up = async () => {
       .query(
         `
       ALTER TABLE sisters 
-      ADD COLUMN IF NOT EXISTS current_community_id INTEGER NULL AFTER current_stage
+      ADD COLUMN IF NOT EXISTS current_community_id INT UNSIGNED NULL AFTER current_stage
     `
       )
       .catch(() =>
@@ -124,12 +124,12 @@ const up = async () => {
     console.error("Migration failed:", error.message);
     throw error;
   } finally {
-    client.release();
+    connection.release();
   }
 };
 
 const down = async () => {
-  const client = await pool.connect();
+  const connection = await pool.getConnection();
   try {
     console.log("Removing extra fields from sisters table...");
 
@@ -138,41 +138,41 @@ const down = async () => {
         `ALTER TABLE sisters DROP FOREIGN KEY IF EXISTS fk_sisters_current_community`
       )
       .catch(() => {});
-    await client.query(
+    await connection.query(
       `ALTER TABLE sisters DROP COLUMN IF EXISTS current_community_id`
     );
-    await client.query(
+    await connection.query(
       `ALTER TABLE sisters DROP COLUMN IF EXISTS current_stage`
     );
-    await client.query(
+    await connection.query(
       `ALTER TABLE sisters DROP COLUMN IF EXISTS family_address`
     );
-    await client.query(
+    await connection.query(
       `ALTER TABLE sisters DROP COLUMN IF EXISTS siblings_count`
     );
-    await client.query(
+    await connection.query(
       `ALTER TABLE sisters DROP COLUMN IF EXISTS mother_occupation`
     );
-    await client.query(
+    await connection.query(
       `ALTER TABLE sisters DROP COLUMN IF EXISTS father_occupation`
     );
-    await client.query(
+    await connection.query(
       `ALTER TABLE sisters DROP COLUMN IF EXISTS current_address`
     );
-    await client.query(
+    await connection.query(
       `ALTER TABLE sisters DROP COLUMN IF EXISTS id_card_place`
     );
-    await client.query(
+    await connection.query(
       `ALTER TABLE sisters DROP COLUMN IF EXISTS id_card_date`
     );
-    await client.query(`ALTER TABLE sisters DROP COLUMN IF EXISTS id_card`);
+    await connection.query(`ALTER TABLE sisters DROP COLUMN IF EXISTS id_card`);
 
     console.log("Extra fields removed!");
   } catch (error) {
     console.error("Rollback failed:", error.message);
     throw error;
   } finally {
-    client.release();
+    connection.release();
   }
 };
 

@@ -2,9 +2,9 @@ const pool = require("../config/database");
 
 const upQuery = `
   CREATE TABLE IF NOT EXISTS health_records (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    sister_id INT UNSIGNED NOT NULL,
-    general_health ENUM('good','average','weak') NOT NULL,
+    id SERIAL PRIMARY KEY,
+    sister_id INTEGER NOT NULL,
+    general_health VARCHAR(20) NOT NULL CHECK (general_health IN ('good','average','weak')),
     chronic_diseases TEXT NULL,
     work_limitations TEXT NULL,
     checkup_date DATE NULL,
@@ -13,31 +13,49 @@ const upQuery = `
     treatment TEXT NULL,
     notes TEXT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT NULL,
     CONSTRAINT fk_health_records_sister FOREIGN KEY (sister_id) REFERENCES sisters(id)
-      ON DELETE CASCADE ON UPDATE CASCADE,
-    INDEX idx_health_sister (sister_id)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+      ON DELETE CASCADE ON UPDATE CASCADE
+  );
+  
+  CREATE INDEX IF NOT EXISTS idx_health_sister ON health_records(sister_id);
+  
+  CREATE OR REPLACE FUNCTION update_health_records_updated_at()
+  RETURNS TRIGGER AS $$
+  BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+  END;
+  $$ LANGUAGE plpgsql;
+  
+  CREATE TRIGGER health_records_updated_at_trigger
+  BEFORE UPDATE ON health_records
+  FOR EACH ROW
+  EXECUTE FUNCTION update_health_records_updated_at();
 `;
 
-const downQuery = "DROP TABLE IF EXISTS health_records;";
+const downQuery = `
+  DROP TRIGGER IF EXISTS health_records_updated_at_trigger ON health_records;
+  DROP FUNCTION IF EXISTS update_health_records_updated_at();
+  DROP TABLE IF EXISTS health_records;
+`;
 
 module.exports = {
   name: "009_create_health_records_table",
   up: async () => {
-    const connection = await pool.getConnection();
+    const client = await pool.connect();
     try {
-      await connection.query(upQuery);
+      await client.query(upQuery);
     } finally {
-      connection.release();
+      client.release();
     }
   },
   down: async () => {
-    const connection = await pool.getConnection();
+    const client = await pool.connect();
     try {
-      await connection.query(downQuery);
+      await client.query(downQuery);
     } finally {
-      connection.release();
+      client.release();
     }
   },
 };

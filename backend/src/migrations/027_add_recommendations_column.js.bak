@@ -2,12 +2,12 @@
 const pool = require("../config/database");
 
 async function up() {
-  const client = await pool.connect();
+  const connection = await pool.getConnection();
   try {
     console.log("Adding recommendations column to evaluations table...");
 
     // Check if column exists
-    const [columns] = await client.query(
+    const [columns] = await connection.query(
       `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
        WHERE TABLE_SCHEMA = DATABASE() 
        AND TABLE_NAME = 'evaluations' 
@@ -16,7 +16,7 @@ async function up() {
 
     if (columns.length === 0) {
       // Add recommendations column after weaknesses
-      await client.query(
+      await connection.query(
         `ALTER TABLE evaluations 
          ADD COLUMN recommendations TEXT NULL 
          AFTER weaknesses`
@@ -33,22 +33,22 @@ async function up() {
     console.error("Migration failed:", error);
     throw error;
   } finally {
-    client.release();
+    connection.release();
   }
 }
 
 async function down() {
-  const client = await pool.connect();
+  const connection = await pool.getConnection();
   try {
     console.log("Rolling back recommendations column...");
 
-    await client.query(
+    await connection.query(
       `ALTER TABLE evaluations DROP COLUMN IF EXISTS recommendations`
     );
 
     console.log("Rollback completed");
   } finally {
-    client.release();
+    connection.release();
   }
 }
 

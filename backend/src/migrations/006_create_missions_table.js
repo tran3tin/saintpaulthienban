@@ -2,18 +2,19 @@ const pool = require("../config/database");
 
 const upQuery = `
   CREATE TABLE IF NOT EXISTS missions (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    sister_id INT UNSIGNED NOT NULL,
-    field ENUM('education','pastoral','publishing','media','healthcare','social') NOT NULL,
+    id SERIAL PRIMARY KEY,
+    sister_id INTEGER NOT NULL,
+    field VARCHAR(50) NOT NULL CHECK (field IN ('education','pastoral','publishing','media','healthcare','social')),
     specific_role VARCHAR(150) NULL,
     start_date DATE NOT NULL,
     end_date DATE NULL,
     notes TEXT NULL,
     CONSTRAINT fk_missions_sister FOREIGN KEY (sister_id) REFERENCES sisters(id)
-      ON DELETE CASCADE ON UPDATE CASCADE,
-    INDEX idx_missions_field (field),
-    INDEX idx_missions_sister (sister_id)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+      ON DELETE CASCADE ON UPDATE CASCADE
+  );
+  
+  CREATE INDEX IF NOT EXISTS idx_missions_field ON missions(field);
+  CREATE INDEX IF NOT EXISTS idx_missions_sister ON missions(sister_id);
 `;
 
 const downQuery = "DROP TABLE IF EXISTS missions;";
@@ -21,19 +22,19 @@ const downQuery = "DROP TABLE IF EXISTS missions;";
 module.exports = {
   name: "006_create_missions_table",
   up: async () => {
-    const connection = await pool.getConnection();
+    const client = await pool.connect();
     try {
-      await connection.query(upQuery);
+      await client.query(upQuery);
     } finally {
-      connection.release();
+      client.release();
     }
   },
   down: async () => {
-    const connection = await pool.getConnection();
+    const client = await pool.connect();
     try {
-      await connection.query(downQuery);
+      await client.query(downQuery);
     } finally {
-      connection.release();
+      client.release();
     }
   },
 };

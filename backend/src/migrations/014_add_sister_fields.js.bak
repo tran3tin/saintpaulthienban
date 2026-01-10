@@ -6,18 +6,18 @@
  * - id_number (CCCD/Passport)
  * - hometown (nguyên quán)
  * - notes (ghi chú khác)
- * - documents_url (upload giấy tờ - JSONB array)
+ * - documents_url (upload giấy tờ - JSON array)
  */
 
 const pool = require("../config/database");
 
 async function up() {
-  const client = await pool.connect();
+  const connection = await pool.getConnection();
   try {
     console.log("Adding new fields to sisters table...");
 
     // Check if columns already exist
-    const [columns] = await client.query(`
+    const [columns] = await connection.query(`
             SELECT COLUMN_NAME 
             FROM INFORMATION_SCHEMA.COLUMNS 
             WHERE TABLE_SCHEMA = DATABASE() 
@@ -28,7 +28,7 @@ async function up() {
 
     // Add saint_name column
     if (!existingColumns.includes("saint_name")) {
-      await client.query(`
+      await connection.query(`
                 ALTER TABLE sisters 
                 ADD COLUMN saint_name VARCHAR(120) NULL 
                 AFTER code
@@ -38,7 +38,7 @@ async function up() {
 
     // Add prefer_name column
     if (!existingColumns.includes("prefer_name")) {
-      await client.query(`
+      await connection.query(`
                 ALTER TABLE sisters 
                 ADD COLUMN prefer_name VARCHAR(120) NULL 
                 AFTER religious_name
@@ -48,7 +48,7 @@ async function up() {
 
     // Add hometown column (nguyên quán)
     if (!existingColumns.includes("hometown")) {
-      await client.query(`
+      await connection.query(`
                 ALTER TABLE sisters 
                 ADD COLUMN hometown VARCHAR(200) NULL 
                 AFTER place_of_birth
@@ -58,7 +58,7 @@ async function up() {
 
     // Add permanent_address column
     if (!existingColumns.includes("permanent_address")) {
-      await client.query(`
+      await connection.query(`
                 ALTER TABLE sisters 
                 ADD COLUMN permanent_address VARCHAR(255) NULL 
                 AFTER hometown
@@ -68,7 +68,7 @@ async function up() {
 
     // Add id_number column (CCCD/Passport)
     if (!existingColumns.includes("id_number")) {
-      await client.query(`
+      await connection.query(`
                 ALTER TABLE sisters 
                 ADD COLUMN id_number VARCHAR(50) NULL 
                 AFTER permanent_address
@@ -78,7 +78,7 @@ async function up() {
 
     // Add notes column
     if (!existingColumns.includes("notes")) {
-      await client.query(`
+      await connection.query(`
                 ALTER TABLE sisters 
                 ADD COLUMN notes TEXT NULL 
                 AFTER emergency_contact_phone
@@ -88,17 +88,18 @@ async function up() {
 
     // Add documents_url column (JSON array for multiple files)
     if (!existingColumns.includes("documents_url")) {
-      await client.query(`
+      await connection.query(`
                 ALTER TABLE sisters 
-                ADD COLUMN documents_url JSONB NULL 
+                ADD COLUMN documents_url JSON NULL 
                 AFTER photo_url
             `);
       console.log("Added column: documents_url");
     }
 
     // Modify status ENUM to include more options
-    await client.query(`
-            ALTER TABLE sisters ALTER COLUMN status TYPE VARCHAR(50) NOT NULL CHECK (column_name IN ('active', 'left', 'deceased', 'transferred')) DEFAULT 'active'
+    await connection.query(`
+            ALTER TABLE sisters 
+            MODIFY COLUMN status ENUM('active', 'left', 'deceased', 'transferred') NOT NULL DEFAULT 'active'
         `);
     console.log("Modified column: status (added more options)");
 
@@ -107,12 +108,12 @@ async function up() {
     console.error("Migration failed:", error.message);
     throw error;
   } finally {
-    client.release();
+    connection.release();
   }
 }
 
 async function down() {
-  const client = await pool.connect();
+  const connection = await pool.getConnection();
   try {
     console.log("Reverting migration 014_add_sister_fields...");
 
@@ -129,7 +130,7 @@ async function down() {
 
     for (const column of columnsToRemove) {
       try {
-        await client.query(`ALTER TABLE sisters DROP COLUMN ${column}`);
+        await connection.query(`ALTER TABLE sisters DROP COLUMN ${column}`);
         console.log(`Dropped column: ${column}`);
       } catch (err) {
         console.log(`Column ${column} does not exist or could not be dropped`);
@@ -137,8 +138,9 @@ async function down() {
     }
 
     // Revert status ENUM
-    await client.query(`
-            ALTER TABLE sisters ALTER COLUMN status TYPE VARCHAR(50) NOT NULL CHECK (column_name IN ('active', 'left')) DEFAULT 'active'
+    await connection.query(`
+            ALTER TABLE sisters 
+            MODIFY COLUMN status ENUM('active', 'left') NOT NULL DEFAULT 'active'
         `);
 
     console.log("Migration 014_add_sister_fields reverted successfully!");
@@ -146,7 +148,7 @@ async function down() {
     console.error("Revert failed:", error.message);
     throw error;
   } finally {
-    client.release();
+    connection.release();
   }
 }
 

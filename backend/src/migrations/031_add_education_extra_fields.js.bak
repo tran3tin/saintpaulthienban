@@ -3,11 +3,11 @@ const pool = require("../config/database");
 const upQuery = `
   ALTER TABLE education
     ADD COLUMN graduation_year INT NULL AFTER end_date,
-    ADD COLUMN status VARCHAR(50) CHECK (column_name IN ('dang_hoc', 'da_tot_nghiep', 'tam_nghi', 'da_nghi')) DEFAULT 'dang_hoc' AFTER graduation_year,
+    ADD COLUMN status ENUM('dang_hoc', 'da_tot_nghiep', 'tam_nghi', 'da_nghi') DEFAULT 'dang_hoc' AFTER graduation_year,
     ADD COLUMN gpa VARCHAR(20) NULL AFTER status,
     ADD COLUMN thesis_title VARCHAR(500) NULL AFTER gpa,
     ADD COLUMN notes TEXT NULL AFTER thesis_title,
-    ADD COLUMN documents JSONB NULL AFTER notes;
+    ADD COLUMN documents JSON NULL AFTER notes;
 `;
 
 const downQuery = `
@@ -23,9 +23,9 @@ const downQuery = `
 module.exports = {
   name: "031_add_education_extra_fields",
   up: async () => {
-    const client = await pool.connect();
+    const connection = await pool.getConnection();
     try {
-      await client.query(upQuery);
+      await connection.query(upQuery);
       console.log("Added extra fields to education table");
     } catch (error) {
       // Nếu column đã tồn tại thì bỏ qua
@@ -35,15 +35,15 @@ module.exports = {
         throw error;
       }
     } finally {
-      client.release();
+      connection.release();
     }
   },
   down: async () => {
-    const client = await pool.connect();
+    const connection = await pool.getConnection();
     try {
-      await client.query(downQuery);
+      await connection.query(downQuery);
     } finally {
-      client.release();
+      connection.release();
     }
   },
 };

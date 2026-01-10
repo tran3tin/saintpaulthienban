@@ -2,12 +2,12 @@
 const pool = require("../config/database");
 
 async function up() {
-  const client = await pool.connect();
+  const connection = await pool.getConnection();
   try {
     console.log("Updating evaluations table...");
 
     // Check existing columns
-    const [columns] = await client.query(
+    const [columns] = await connection.query(
       `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'evaluations'`
     );
@@ -33,23 +33,23 @@ async function up() {
       },
       {
         name: "spiritual_life",
-        sql: "ALTER TABLE evaluations ADD COLUMN spiritual_life SMALLINTEGER NULL AFTER evaluator",
+        sql: "ALTER TABLE evaluations ADD COLUMN spiritual_life TINYINT UNSIGNED NULL AFTER evaluator",
       },
       {
         name: "community_life",
-        sql: "ALTER TABLE evaluations ADD COLUMN community_life SMALLINTEGER NULL AFTER spiritual_life",
+        sql: "ALTER TABLE evaluations ADD COLUMN community_life TINYINT UNSIGNED NULL AFTER spiritual_life",
       },
       {
         name: "apostolic_work",
-        sql: "ALTER TABLE evaluations ADD COLUMN apostolic_work SMALLINTEGER NULL AFTER community_life",
+        sql: "ALTER TABLE evaluations ADD COLUMN apostolic_work TINYINT UNSIGNED NULL AFTER community_life",
       },
       {
         name: "personal_development",
-        sql: "ALTER TABLE evaluations ADD COLUMN personal_development SMALLINTEGER NULL AFTER apostolic_work",
+        sql: "ALTER TABLE evaluations ADD COLUMN personal_development TINYINT UNSIGNED NULL AFTER apostolic_work",
       },
       {
         name: "overall_rating",
-        sql: "ALTER TABLE evaluations ADD COLUMN overall_rating SMALLINTEGER NULL AFTER personal_development",
+        sql: "ALTER TABLE evaluations ADD COLUMN overall_rating TINYINT UNSIGNED NULL AFTER personal_development",
       },
       {
         name: "strengths",
@@ -65,14 +65,14 @@ async function up() {
       },
       {
         name: "documents",
-        sql: "ALTER TABLE evaluations ADD COLUMN documents JSONB NULL AFTER notes",
+        sql: "ALTER TABLE evaluations ADD COLUMN documents JSON NULL AFTER notes",
       },
     ];
 
     for (const col of columnsToAdd) {
       if (!existingCols.includes(col.name)) {
         console.log(`Adding column: ${col.name}`);
-        await client.query(col.sql);
+        await connection.query(col.sql);
       } else {
         console.log(`Column ${col.name} already exists`);
       }
@@ -85,12 +85,12 @@ async function up() {
     console.error("Migration failed:", error);
     throw error;
   } finally {
-    client.release();
+    connection.release();
   }
 }
 
 async function down() {
-  const client = await pool.connect();
+  const connection = await pool.getConnection();
   try {
     console.log("Rolling back evaluations table changes...");
 
@@ -112,7 +112,7 @@ async function down() {
 
     for (const col of columnsToRemove) {
       try {
-        await client.query(
+        await connection.query(
           `ALTER TABLE evaluations DROP COLUMN IF EXISTS ${col}`
         );
       } catch (e) {
@@ -122,7 +122,7 @@ async function down() {
 
     console.log("Rollback completed");
   } finally {
-    client.release();
+    connection.release();
   }
 }
 

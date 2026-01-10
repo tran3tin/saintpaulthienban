@@ -2,14 +2,15 @@
 const pool = require("../config/database");
 
 async function up() {
-  const client = await pool.connect();
+  const connection = await pool.getConnection();
 
   try {
     console.log("Altering current_stage column in sisters table...");
 
     // Change current_stage from ENUM to VARCHAR to allow custom stages
-    await client.query(`
-      ALTER TABLE sisters ALTER COLUMN current_stage TYPE VARCHAR(50) NULL
+    await connection.query(`
+      ALTER TABLE sisters 
+      MODIFY COLUMN current_stage VARCHAR(50) NULL
     `);
 
     console.log("✓ current_stage column altered to VARCHAR(50)");
@@ -18,7 +19,7 @@ async function up() {
     console.error("Migration failed:", error.message);
     throw error;
   } finally {
-    client.release();
+    connection.release();
   }
 }
 

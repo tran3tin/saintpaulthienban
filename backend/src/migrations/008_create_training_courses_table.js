@@ -2,8 +2,8 @@ const pool = require("../config/database");
 
 const upQuery = `
   CREATE TABLE IF NOT EXISTS training_courses (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    sister_id INT UNSIGNED NOT NULL,
+    id SERIAL PRIMARY KEY,
+    sister_id INTEGER NOT NULL,
     course_name VARCHAR(180) NOT NULL,
     organizer VARCHAR(180) NULL,
     start_date DATE NULL,
@@ -11,9 +11,10 @@ const upQuery = `
     content TEXT NULL,
     notes TEXT NULL,
     CONSTRAINT fk_training_courses_sister FOREIGN KEY (sister_id) REFERENCES sisters(id)
-      ON DELETE CASCADE ON UPDATE CASCADE,
-    INDEX idx_training_courses_sister (sister_id)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+      ON DELETE CASCADE ON UPDATE CASCADE
+  );
+  
+  CREATE INDEX IF NOT EXISTS idx_training_courses_sister ON training_courses(sister_id);
 `;
 
 const downQuery = "DROP TABLE IF EXISTS training_courses;";
@@ -21,19 +22,19 @@ const downQuery = "DROP TABLE IF EXISTS training_courses;";
 module.exports = {
   name: "008_create_training_courses_table",
   up: async () => {
-    const connection = await pool.getConnection();
+    const client = await pool.connect();
     try {
-      await connection.query(upQuery);
+      await client.query(upQuery);
     } finally {
-      connection.release();
+      client.release();
     }
   },
   down: async () => {
-    const connection = await pool.getConnection();
+    const client = await pool.connect();
     try {
-      await connection.query(downQuery);
+      await client.query(downQuery);
     } finally {
-      connection.release();
+      client.release();
     }
   },
 };

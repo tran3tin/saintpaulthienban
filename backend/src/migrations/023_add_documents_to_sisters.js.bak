@@ -1,14 +1,14 @@
-// Migration: Add documents JSONB field to sisters table
+// Migration: Add documents JSON field to sisters table
 const pool = require("../config/database");
 
 async function up() {
-  const client = await pool.connect();
+  const connection = await pool.getConnection();
   
   try {
     console.log("Adding documents field to sisters table...");
 
     // Check if documents column exists
-    const [columns] = await client.query(`
+    const [columns] = await connection.query(`
       SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
       WHERE TABLE_SCHEMA = DATABASE() 
       AND TABLE_NAME = 'sisters' 
@@ -16,9 +16,10 @@ async function up() {
     `);
 
     if (columns.length === 0) {
-      // Add documents column as JSONB await client.query(`
+      // Add documents column as JSON
+      await connection.query(`
         ALTER TABLE sisters 
-        ADD COLUMN documents JSONB DEFAULT NULL 
+        ADD COLUMN documents JSON DEFAULT NULL 
         COMMENT 'JSON array of document files'
       `);
       console.log("✓ Added documents column");
@@ -31,7 +32,7 @@ async function up() {
     console.error("Migration failed:", error.message);
     throw error;
   } finally {
-    client.release();
+    connection.release();
   }
 }
 

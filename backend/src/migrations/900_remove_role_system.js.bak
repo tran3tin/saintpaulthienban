@@ -4,7 +4,7 @@
 
 const createMigration = (pool) => {
   const up = async () => {
-    const client = await pool.connect();
+    const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
 
@@ -12,45 +12,47 @@ const createMigration = (pool) => {
 
       // 1. Drop foreign key constraint from users table if exists
       console.log("Removing role_id from users table...");
-      await client.query(`
+      await connection.query(`
         ALTER TABLE users 
         DROP FOREIGN KEY IF EXISTS users_ibfk_1
       `);
 
       // 2. Drop role_id column from users
-      await client.query(`
+      await connection.query(`
         ALTER TABLE users 
         DROP COLUMN IF EXISTS role_id
       `);
 
       // 3. Drop role_permissions table
       console.log("Dropping role_permissions table...");
-      await client.query(`
+      await connection.query(`
         DROP TABLE IF EXISTS role_permissions
       `);
 
       // 4. Drop roles table
       console.log("Dropping roles table...");
-      await client.query(`
+      await connection.query(`
         DROP TABLE IF EXISTS roles
       `);
 
       // 5. Create permissions table if not exists
       console.log("Creating permissions table...");
-      await client.query(`
+      await connection.query(`
         CREATE TABLE IF NOT EXISTS permissions (
           id INT PRIMARY KEY AUTO_INCREMENT,
           code VARCHAR(50) UNIQUE NOT NULL,
           name VARCHAR(100) NOT NULL,
           description TEXT,
           module VARCHAR(50) NOT NULL,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )   COLLATE=utf8mb4_unicode_ci
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          INDEX idx_code (code),
+          INDEX idx_module (module)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
       `);
 
       // 6. Create user_permissions table
       console.log("Creating user_permissions table...");
-      await client.query(`
+      await connection.query(`
         CREATE TABLE IF NOT EXISTS user_permissions (
           id INT PRIMARY KEY AUTO_INCREMENT,
           user_id INT NOT NULL,
@@ -60,13 +62,15 @@ const createMigration = (pool) => {
           FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
           FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE,
           FOREIGN KEY (granted_by) REFERENCES users(id) ON DELETE SET NULL,
-          UNIQUE KEY unique_user_permission (user_id, permission_id)
-        )   COLLATE=utf8mb4_unicode_ci
+          UNIQUE KEY unique_user_permission (user_id, permission_id),
+          INDEX idx_user_id (user_id),
+          INDEX idx_permission_id (permission_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
       `);
 
       // 7. Create user_communities table for community-based filtering
       console.log("Creating user_communities table...");
-      await client.query(`
+      await connection.query(`
         CREATE TABLE IF NOT EXISTS user_communities (
           id INT PRIMARY KEY AUTO_INCREMENT,
           user_id INT NOT NULL,
@@ -76,13 +80,15 @@ const createMigration = (pool) => {
           FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
           FOREIGN KEY (community_id) REFERENCES communities(id) ON DELETE CASCADE,
           FOREIGN KEY (granted_by) REFERENCES users(id) ON DELETE SET NULL,
-          UNIQUE KEY unique_user_community (user_id, community_id)
-        )   COLLATE=utf8mb4_unicode_ci
+          UNIQUE KEY unique_user_community (user_id, community_id),
+          INDEX idx_user_id (user_id),
+          INDEX idx_community_id (community_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
       `);
 
       // 8. Insert default permissions
       console.log("Inserting default permissions...");
-      await client.query(`
+      await connection.query(`
         INSERT IGNORE INTO permissions (code, name, description, module) VALUES
         -- Sisters
         ('sisters.view', 'Xem danh sách nữ tu', 'Cho phép xem danh sách và thông tin nữ tu', 'sisters'),
@@ -153,24 +159,24 @@ const createMigration = (pool) => {
       console.error("Migration failed:", error);
       throw error;
     } finally {
-      client.release();
+      connection.release();
     }
   };
 
   const down = async () => {
-    const client = await pool.connect();
+    const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
 
       console.log("Rolling back role system removal...");
 
       // Drop new tables
-      await client.query("DROP TABLE IF EXISTS user_communities");
-      await client.query("DROP TABLE IF EXISTS user_permissions");
-      await client.query("DROP TABLE IF EXISTS permissions");
+      await connection.query("DROP TABLE IF EXISTS user_communities");
+      await connection.query("DROP TABLE IF EXISTS user_permissions");
+      await connection.query("DROP TABLE IF EXISTS permissions");
 
       // Recreate old structure (basic version)
-      await client.query(`
+      await connection.query(`
         CREATE TABLE IF NOT EXISTS roles (
           id INT PRIMARY KEY AUTO_INCREMENT,
           name VARCHAR(50) NOT NULL,
@@ -179,7 +185,7 @@ const createMigration = (pool) => {
         )
       `);
 
-      await client.query(`
+      await connection.query(`
         ALTER TABLE users 
         ADD COLUMN role_id INT,
         ADD FOREIGN KEY (role_id) REFERENCES roles(id)
@@ -191,7 +197,7 @@ const createMigration = (pool) => {
       await connection.rollback();
       throw error;
     } finally {
-      client.release();
+      connection.release();
     }
   };
 

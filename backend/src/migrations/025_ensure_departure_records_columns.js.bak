@@ -30,7 +30,7 @@ const columnsToAdd = [
   },
   {
     name: "approved_by",
-    definition: "INTEGER NULL AFTER contact_address",
+    definition: "INT UNSIGNED NULL AFTER contact_address",
   },
   {
     name: "notes",
@@ -43,11 +43,11 @@ const columnsToAdd = [
 ];
 
 async function up() {
-  const client = await pool.connect();
+  const connection = await pool.getConnection();
   try {
     console.log("Checking departure_records columns...");
 
-    const [rows] = await client.query(
+    const [rows] = await connection.query(
       `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'departure_records'`
     );
     const existing = rows.map((r) => r.COLUMN_NAME);
@@ -56,14 +56,14 @@ async function up() {
       if (!existing.includes(col.name)) {
         const sql = `ALTER TABLE departure_records ADD COLUMN ${col.definition}`;
         console.log(`Adding column ${col.name}...`);
-        await client.query(sql);
+        await connection.query(sql);
       }
     }
 
     // Ensure stage_at_departure allows NULL (older schema required NOT NULL)
     console.log("Ensuring stage_at_departure allows NULL...");
-    await client.query(
-      `ALTER TABLE departure_records ALTER COLUMN stage_at_departure TYPE VARCHAR(50) CHECK (column_name IN ('inquiry','postulant','aspirant','novice','temporary_vows','perpetual_vows','left')) NULL`
+    await connection.query(
+      `ALTER TABLE departure_records MODIFY COLUMN stage_at_departure ENUM('inquiry','postulant','aspirant','novice','temporary_vows','perpetual_vows','left') NULL`
     );
 
     console.log("Migration 025_ensure_departure_records_columns completed.");
@@ -71,16 +71,16 @@ async function up() {
     console.error("Migration failed:", err.message);
     throw err;
   } finally {
-    client.release();
+    connection.release();
   }
 }
 
 async function down() {
-  const client = await pool.connect();
+  const connection = await pool.getConnection();
   try {
     console.log("Down migration: no columns dropped (safe migration).");
   } finally {
-    client.release();
+    connection.release();
   }
 }
 

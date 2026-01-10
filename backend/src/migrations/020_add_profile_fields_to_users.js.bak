@@ -4,7 +4,7 @@
 const pool = require("../config/database");
 
 const up = async () => {
-  const client = await pool.connect();
+  const connection = await pool.getConnection();
   try {
     console.log("Adding profile fields to users table...");
 
@@ -49,25 +49,25 @@ const up = async () => {
     console.error("Migration failed:", error.message);
     throw error;
   } finally {
-    client.release();
+    connection.release();
   }
 };
 
 const down = async () => {
-  const client = await pool.connect();
+  const connection = await pool.getConnection();
   try {
     console.log("Removing profile fields from users table...");
 
-    await client.query(`ALTER TABLE users DROP COLUMN IF EXISTS avatar`);
-    await client.query(`ALTER TABLE users DROP COLUMN IF EXISTS phone`);
-    await client.query(`ALTER TABLE users DROP COLUMN IF EXISTS full_name`);
+    await connection.query(`ALTER TABLE users DROP COLUMN IF EXISTS avatar`);
+    await connection.query(`ALTER TABLE users DROP COLUMN IF EXISTS phone`);
+    await connection.query(`ALTER TABLE users DROP COLUMN IF EXISTS full_name`);
 
     console.log("Profile fields removed!");
   } catch (error) {
     console.error("Rollback failed:", error.message);
     throw error;
   } finally {
-    client.release();
+    connection.release();
   }
 };
 

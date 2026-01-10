@@ -2,20 +2,21 @@ const pool = require("../config/database");
 
 const upQuery = `
   CREATE TABLE IF NOT EXISTS audit_logs (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    user_id INT UNSIGNED NULL,
+    id BIGSERIAL PRIMARY KEY,
+    user_id INTEGER NULL,
     action VARCHAR(100) NOT NULL,
     table_name VARCHAR(100) NOT NULL,
     record_id BIGINT NULL,
-    old_value JSON NULL,
-    new_value JSON NULL,
+    old_value JSONB NULL,
+    new_value JSONB NULL,
     ip_address VARCHAR(50) NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_audit_logs_user FOREIGN KEY (user_id) REFERENCES users(id)
-      ON DELETE SET NULL ON UPDATE CASCADE,
-    INDEX idx_audit_table (table_name),
-    INDEX idx_audit_user (user_id)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+      ON DELETE SET NULL ON UPDATE CASCADE
+  );
+  
+  CREATE INDEX IF NOT EXISTS idx_audit_table ON audit_logs(table_name);
+  CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_logs(user_id);
 `;
 
 const downQuery = "DROP TABLE IF EXISTS audit_logs;";
@@ -23,19 +24,19 @@ const downQuery = "DROP TABLE IF EXISTS audit_logs;";
 module.exports = {
   name: "012_create_audit_logs_table",
   up: async () => {
-    const connection = await pool.getConnection();
+    const client = await pool.connect();
     try {
-      await connection.query(upQuery);
+      await client.query(upQuery);
     } finally {
-      connection.release();
+      client.release();
     }
   },
   down: async () => {
-    const connection = await pool.getConnection();
+    const client = await pool.connect();
     try {
-      await connection.query(downQuery);
+      await client.query(downQuery);
     } finally {
-      connection.release();
+      client.release();
     }
   },
 };
