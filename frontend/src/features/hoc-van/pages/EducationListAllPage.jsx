@@ -135,6 +135,19 @@ const EducationListAllPage = () => {
   };
 
   const getLevelBadge = (levelCode) => {
+    // Fallback mapping tiếng Việt cho các level
+    const levelTranslations = {
+      primary: "Tiểu học",
+      secondary: "Trung học cơ sở",
+      high_school: "Trung học phổ thông",
+      vocational: "Trung cấp",
+      associate: "Cao đẳng",
+      bachelor: "Đại học",
+      master: "Thạc sĩ",
+      doctorate: "Tiến sĩ",
+      other: "Khác",
+    };
+
     const levelItem = levels.find((l) => l.code === levelCode);
     if (levelItem) {
       return (
@@ -148,7 +161,10 @@ const EducationListAllPage = () => {
         </Badge>
       );
     }
-    return <Badge bg="secondary">{levelCode || "Khác"}</Badge>;
+    
+    // Fallback to translations if level not found in levels array
+    const vietnameseName = levelTranslations[levelCode] || levelCode || "Khác";
+    return <Badge bg="secondary">{vietnameseName}</Badge>;
   };
 
   const getStatusBadge = (status) => {
