@@ -437,6 +437,7 @@ const createEvaluation = async (req, res) => {
       sister_id: sisterId,
       evaluation_type: evaluationType,
       period: evaluationPeriod,
+      evaluation_period: evaluationPeriod,
       evaluation_date: evaluationDate,
       evaluator: evaluatorId,
       spiritual_life: spiritualLife,
