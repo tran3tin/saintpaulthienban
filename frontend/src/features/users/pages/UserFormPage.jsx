@@ -66,6 +66,7 @@ const UserFormPage = () => {
     email: "",
     phone: "",
     status: "active",
+    role: "viewer",
     avatar: "",
     photo_file: null,
   });
@@ -872,6 +873,33 @@ const UserFormPage = () => {
               </Card.Header>
               <Card.Body>
                 <Row className="g-3">
+                  <Col xs={12}>
+                    <Form.Group>
+                      <Form.Label>
+                        Vai trò <span className="text-danger">*</span>
+                      </Form.Label>
+                      <Form.Select
+                        name="role"
+                        value={values.role}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                      >
+                        <option value="viewer">Người xem (Viewer)</option>
+                        <option value="secretary">Thư ký (Secretary)</option>
+                        <option value="superior_community">
+                          Xứ trưởng (Superior Community)
+                        </option>
+                        <option value="superior_provincial">
+                          Hội đủ (Superior Provincial)
+                        </option>
+                        <option value="superior_general">
+                          Hội tổng (Superior General)
+                        </option>
+                        <option value="admin">Quản trị viên (Admin)</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+
                   <Col xs={12}>
                     <Form.Group>
                       <Form.Label>Trạng thái</Form.Label>
