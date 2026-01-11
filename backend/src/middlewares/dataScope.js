@@ -123,8 +123,10 @@ const attachDataScope = async (req, res, next) => {
     next();
   } catch (error) {
     console.error("Error in attachDataScope middleware:", error);
-    // Don't fail the request, just set default scope
-    req.userScope = { type: "own", user_id: req.user.id };
+    // Don't fail the request, set a safe default scope.
+    // Using 'community' with an empty list prevents accidental broad access and
+    // avoids assuming tables have a created_by column.
+    req.userScope = { type: "community", community_ids: [] };
     next();
   }
 };

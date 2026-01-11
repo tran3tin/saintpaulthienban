@@ -16,17 +16,17 @@ router.use(attachDataScope);
 
 router.get(
   "/",
-  checkPermission("communities.view_list"),
+  checkPermission("communities.view"),
   communityController.getAllCommunities
 );
 router.get(
   "/:id",
-  checkPermission("communities.view_detail"),
+  checkPermission("communities.view"),
   communityController.getCommunityById
 );
 router.get(
   "/:id/members",
-  checkPermission("communities.view_list"),
+  checkPermission("communities.view"),
   communityController.getCommunityMembers
 );
 
@@ -40,7 +40,7 @@ router.post(
 
 router.put(
   "/:id",
-  checkPermission("communities.edit"),
+  checkPermission("communities.update"),
   validateCommunityUpdate,
   handleValidationErrors,
   communityController.updateCommunity
@@ -55,21 +55,21 @@ router.delete(
 // Member management routes
 router.post(
   "/:id/members",
-  checkPermission("communities.assign"),
+  checkPermission("communities.update"),
   uploadDecision,
   communityController.addMember
 );
 
 router.put(
   "/:id/members/:memberId",
-  checkPermission("communities.assign"),
+  checkPermission("communities.update"),
   uploadDecision,
   communityController.updateMemberRole
 );
 
 router.delete(
   "/:id/members/:memberId",
-  checkPermission("communities.assign"),
+  checkPermission("communities.update"),
   communityController.removeMember
 );
 
