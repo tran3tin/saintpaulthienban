@@ -32,6 +32,15 @@ const Input = forwardRef(
   ) => {
     const hasError = touched && error;
 
+    // React warns if a controlled input receives `null` for value.
+    // Normalize null/undefined to empty string for text-like inputs.
+    const normalizedValue =
+      value === null || value === undefined
+        ? type === "number"
+          ? ""
+          : ""
+        : value;
+
     return (
       <Form.Group className={`input-group-custom ${className}`}>
         {label && (
@@ -52,7 +61,7 @@ const Input = forwardRef(
             ref={ref}
             type={type}
             name={name}
-            value={value}
+            value={normalizedValue}
             onChange={onChange}
             onBlur={onBlur}
             placeholder={placeholder}
