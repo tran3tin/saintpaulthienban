@@ -807,7 +807,7 @@ const getSisterReport = async (req, res) => {
     const [totalRows, activeRows, newThisMonth] = await Promise.all([
       SisterModel.executeQuery("SELECT COUNT(*) as total FROM sisters"),
       SisterModel.executeQuery(
-        'SELECT COUNT(*) as total FROM sisters WHERE status = "active"'
+        "SELECT COUNT(*) as total FROM sisters WHERE status = 'active'"
       ),
       SisterModel.executeQuery(`
         SELECT COUNT(*) as total FROM sisters 
