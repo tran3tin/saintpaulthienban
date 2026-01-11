@@ -639,10 +639,15 @@ const getUserActivities = async (req, res) => {
 const getAllPermissions = async (req, res) => {
   try {
     const permissions = await UserModel.executeQuery(`
-      SELECT id, name, display_name as displayName, description, module
+      SELECT
+        id,
+        code AS name,
+        name AS "displayName",
+        description,
+        module
       FROM permissions
       WHERE is_active = true
-      ORDER BY module, name
+      ORDER BY module, code
     `);
 
     // Module name mapping - gộp các module có cùng chức năng
