@@ -3,16 +3,19 @@
 import axios from "axios";
 import { toast } from "react-toastify";
 
-// Backend URLs
-const RAILWAY_API = "https://osp-backend-production.up.railway.app/api";
+// Backend URLs - Fallback values if VITE_API_URL is not set
 const LOCALHOST_API = "http://localhost:5000/api";
+const PRODUCTION_API = "https://your-backend.onrender.com/api"; // Update this with your Render backend URL
 
-// Use localhost in development, Railway in production
-let baseURL = import.meta.env.DEV ? LOCALHOST_API : RAILWAY_API;
+// Priority 1: Use VITE_API_URL from environment variable (RECOMMENDED)
+let baseURL = import.meta.env.VITE_API_URL;
 
-// Override with environment variable if set
-if (import.meta.env.VITE_API_URL) {
-  baseURL = import.meta.env.VITE_API_URL;
+// Priority 2: Fallback to localhost (dev) or production URL
+if (!baseURL) {
+  baseURL = import.meta.env.DEV ? LOCALHOST_API : PRODUCTION_API;
+  console.warn(
+    `⚠️ VITE_API_URL not set. Using fallback: ${baseURL}. Please set VITE_API_URL in .env file.`
+  );
 }
 
 // Create axios instance
