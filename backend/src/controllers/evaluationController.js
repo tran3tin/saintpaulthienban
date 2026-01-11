@@ -144,7 +144,12 @@ const getEvaluations = async (req, res) => {
                ev.birth_name as evaluator_birth_name 
                FROM evaluations e 
                LEFT JOIN sisters s ON e.sister_id = s.id 
-               LEFT JOIN sisters ev ON CAST(e.evaluator AS UNSIGNED) = ev.id
+               LEFT JOIN sisters ev ON (
+                 CASE
+                   WHEN e.evaluator IS NOT NULL AND e.evaluator ~ '^[0-9]+$' THEN e.evaluator::int
+                   ELSE NULL
+                 END
+               ) = ev.id
                WHERE 1=1`;
 
     const params = [];

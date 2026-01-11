@@ -10,19 +10,19 @@ router.use(attachDataScope);
 
 router.get(
   "/",
-  checkPermission("evaluations.view_list"),
+  checkPermission("evaluations.view"),
   evaluationController.getEvaluations
 );
 
 router.get(
   "/sister/:sisterId",
-  checkPermission("evaluations.view_list"),
+  checkPermission("evaluations.view"),
   evaluationController.getEvaluationsBySister
 );
 
 router.get(
   "/:id",
-  checkPermission("evaluations.view_detail"),
+  checkPermission("evaluations.view"),
   evaluationController.getEvaluationById
 );
 
@@ -34,7 +34,7 @@ router.post(
 
 router.put(
   "/:id",
-  checkPermission("evaluations.edit"),
+  checkPermission("evaluations.update"),
   evaluationController.updateEvaluation
 );
 
@@ -46,7 +46,7 @@ router.delete(
 
 router.get(
   "/:id/export",
-  checkPermission("evaluations.view_detail"),
+  checkPermission("evaluations.view"),
   evaluationController.exportEvaluationPDF
 );
 
