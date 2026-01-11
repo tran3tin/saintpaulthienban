@@ -30,9 +30,11 @@ const UserFormPage = () => {
   const navigate = useNavigate();
   const isEditMode = !!id;
   const { user, updateUser } = useAuth();
-  const canViewCommunities = user?.permissions?.includes(
-    "communities.view_list"
-  );
+  const canViewCommunities =
+    Array.isArray(user?.permissions) &&
+    user.permissions.some((p) =>
+      ["communities.view", "communities.view_list"].includes(p)
+    );
 
   const [loading, setLoading] = useState(isEditMode);
   const [submitting, setSubmitting] = useState(false);

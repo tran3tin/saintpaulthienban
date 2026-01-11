@@ -19,6 +19,35 @@ const communityService = {
   },
 
   /**
+   * Get all communities as a simple array for dropdowns/selectors.
+   * Normalizes backend shapes like { data: [...], meta: {...} }.
+   */
+  getAllSimple: async () => {
+    try {
+      const response = await api.get(API_ENDPOINTS.COMMUNITY.LIST, {
+        params: { page: 1, limit: 1000 },
+      });
+
+      const list =
+        (Array.isArray(response?.data) && response.data) ||
+        (Array.isArray(response?.items) && response.items) ||
+        (Array.isArray(response) && response) ||
+        [];
+
+      return { success: true, data: list };
+    } catch (error) {
+      return {
+        success: false,
+        error:
+          error.response?.data?.message ||
+          error.message ||
+          "Không thể tải danh sách cộng đoàn",
+        data: [],
+      };
+    }
+  },
+
+  /**
    * Get community detail
    * @param {string} id
    * @returns {Promise}
