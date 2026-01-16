@@ -13,9 +13,9 @@ Hệ thống quản lý nhân sự cho Hội Dòng OSP (Mến Thánh Giá).
 │   │   ├── migrations/
 │   │   ├── models/
 │   │   ├── routes/
+│   │   ├── services/
 │   │   └── utils/
 │   ├── db/
-│   ├── scripts/
 │   ├── server.js
 │   └── package.json
 │
@@ -28,56 +28,81 @@ Hệ thống quản lý nhân sự cho Hội Dòng OSP (Mến Thánh Giá).
 │   │   ├── services/
 │   │   ├── hooks/
 │   │   ├── context/
-│   │   ├── utils/
-│   │   └── config/
+│   │   └── utils/
 │   ├── public/
 │   └── package.json
 │
-├── frontend-legacy/        # Frontend cũ (HTML/CSS/JS) - Tham khảo
-│
-└── .gitignore
+└── database/               # Database backup files
 ```
 
-## Cài đặt
+## Cài đặt nhanh
 
-### Backend
+### 1. Cài đặt PostgreSQL
+
+- Tải và cài đặt PostgreSQL từ: https://www.postgresql.org/download/
+- Tạo database `hr_records`
+
+### 2. Cấu hình Backend
+
 ```bash
 cd backend
 npm install
+```
+
+Tạo file `.env` từ `.env.example`:
+
+```env
+DATABASE_URL=postgresql://postgres:password@localhost:5432/hr_records
+JWT_SECRET=your_jwt_secret_key
+```
+
+### 3. Chạy Migrations & Tạo Admin
+
+```bash
+node setup.js
+```
+
+Script này sẽ tự động:
+
+- Chạy migrations để tạo các bảng
+- Tạo tài khoản admin (username: `admin`, password: `admin123`)
+
+### 4. Khởi động Backend
+
+```bash
 npm run dev
 ```
 
-Chuẩn bị database (PostgreSQL):
-- Tạo database `hr_records` (ví dụ bằng pgAdmin)
-- Cấu hình `backend/.env` bằng `DATABASE_URL` hoặc `PGHOST/PGUSER/PGPASSWORD/PGDATABASE`
-- Chạy migrations: `node src/migrations/runMigrations.js`
+Backend chạy tại: http://localhost:5000
 
-Ghi chú: file `backend/db/init.sql` là script MySQL cũ; dùng `backend/db/init_postgres.sql` để tham khảo khi setup PostgreSQL.
+### 5. Cài đặt & Khởi động Frontend
 
-### Frontend
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-## Chạy ứng dụng
+Frontend chạy tại: http://localhost:5173
 
-- Backend: http://localhost:5000
-- Frontend: http://localhost:5173
+## Đăng nhập
+
+- **Username:** admin
+- **Password:** admin123
 
 ## Công nghệ sử dụng
 
 ### Backend
+
 - Node.js + Express 5
-- PostgreSQL (pg)
+- PostgreSQL
 - JWT Authentication
-- bcryptjs, multer, exceljs, pdfkit
+- Firebase Storage (upload files)
 
 ### Frontend
+
 - React 19 + Vite
 - React Router DOM
 - Bootstrap 5 + React Bootstrap
 - Axios
 - Formik + Yup
-- Recharts

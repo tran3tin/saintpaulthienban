@@ -33,14 +33,12 @@ const getInitialUser = () => {
         return parsed;
       } else {
         // Invalid data - clear it immediately
-        console.warn("🔧 Invalid user data detected, clearing localStorage...");
         localStorage.removeItem("user");
         localStorage.removeItem("token");
         return null;
       }
     }
   } catch (e) {
-    console.error("Error parsing user data:", e);
     localStorage.removeItem("user");
     localStorage.removeItem("token");
   }

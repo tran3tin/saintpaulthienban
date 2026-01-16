@@ -26,7 +26,10 @@ if (DATABASE_URL) {
   console.log("Using PostgreSQL connection URL");
   pool = new Pool({
     connectionString: DATABASE_URL,
-    ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
+    ssl:
+      process.env.NODE_ENV === "production"
+        ? { rejectUnauthorized: false }
+        : false,
     max: 10,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 10000,
@@ -52,7 +55,10 @@ if (DATABASE_URL) {
     user,
     password,
     database,
-    ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
+    ssl:
+      process.env.NODE_ENV === "production"
+        ? { rejectUnauthorized: false }
+        : false,
     max: 10,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 10000,
@@ -61,14 +67,14 @@ if (DATABASE_URL) {
 
 // Add compatibility layer for MySQL-style methods
 // execute() - converts ? to $1, $2 and returns [rows, fields] format
-pool.execute = async function(query, params = []) {
+pool.execute = async function (query, params = []) {
   const client = await pool.connect();
   try {
     // Convert MySQL ? placeholders to PostgreSQL $1, $2, etc.
     let pgQuery = query;
     let pgParams = params;
-    
-    if (query.includes('?')) {
+
+    if (query.includes("?")) {
       pgParams = [];
       let paramIndex = 1;
       pgQuery = query.replace(/\?/g, () => {
@@ -76,9 +82,9 @@ pool.execute = async function(query, params = []) {
         return `$${paramIndex++}`;
       });
     }
-    
+
     const result = await client.query(pgQuery, pgParams);
-    
+
     // Return in MySQL format: [rows, fields]
     // PostgreSQL doesn't have fields in the same way, so we return empty array
     return [result.rows, []];
@@ -109,19 +115,22 @@ pool.query = async function (query, params = []) {
 };
 
 // getConnection() - returns a client (PostgreSQL equivalent)
-pool.getConnection = async function() {
+pool.getConnection = async function () {
   return await pool.connect();
 };
 
 (async () => {
   try {
     const client = await pool.connect();
-    const result = await client.query('SELECT NOW()');
+    const result = await client.query("SELECT NOW()");
     console.log("PostgreSQL connection pool established successfully.");
     console.log("Server time:", result.rows[0].now);
     client.release();
   } catch (error) {
-    console.error("Failed to initialize PostgreSQL connection pool:", error.message);
+    console.error(
+      "Failed to initialize PostgreSQL connection pool:",
+      error.message
+    );
     throw error;
   }
 })();

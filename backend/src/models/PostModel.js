@@ -89,7 +89,8 @@ class PostModel extends BaseModel {
     posts.forEach((post) => {
       if (post.tags) {
         try {
-          post.tags = typeof post.tags === "string" ? JSON.parse(post.tags) : post.tags;
+          post.tags =
+            typeof post.tags === "string" ? JSON.parse(post.tags) : post.tags;
         } catch (e) {
           post.tags = [];
         }
@@ -138,7 +139,8 @@ class PostModel extends BaseModel {
     posts.forEach((post) => {
       if (post.tags) {
         try {
-          post.tags = typeof post.tags === "string" ? JSON.parse(post.tags) : post.tags;
+          post.tags =
+            typeof post.tags === "string" ? JSON.parse(post.tags) : post.tags;
         } catch (e) {
           post.tags = [];
         }
@@ -182,7 +184,8 @@ class PostModel extends BaseModel {
     if (post) {
       if (post.tags) {
         try {
-          post.tags = typeof post.tags === "string" ? JSON.parse(post.tags) : post.tags;
+          post.tags =
+            typeof post.tags === "string" ? JSON.parse(post.tags) : post.tags;
         } catch (e) {
           post.tags = [];
         }

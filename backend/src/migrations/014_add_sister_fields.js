@@ -76,11 +76,15 @@ async function down() {
     // Drop added columns
     await client.query(`ALTER TABLE sisters DROP COLUMN IF EXISTS saint_name`);
     await client.query(`ALTER TABLE sisters DROP COLUMN IF EXISTS prefer_name`);
-    await client.query(`ALTER TABLE sisters DROP COLUMN IF EXISTS permanent_address`);
+    await client.query(
+      `ALTER TABLE sisters DROP COLUMN IF EXISTS permanent_address`
+    );
     await client.query(`ALTER TABLE sisters DROP COLUMN IF EXISTS id_number`);
     await client.query(`ALTER TABLE sisters DROP COLUMN IF EXISTS hometown`);
     await client.query(`ALTER TABLE sisters DROP COLUMN IF EXISTS notes`);
-    await client.query(`ALTER TABLE sisters DROP COLUMN IF EXISTS documents_url`);
+    await client.query(
+      `ALTER TABLE sisters DROP COLUMN IF EXISTS documents_url`
+    );
 
     console.log("Migration 014_add_sister_fields reverted successfully!");
   } catch (error) {

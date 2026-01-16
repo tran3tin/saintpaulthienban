@@ -71,9 +71,10 @@ const runMigrations = async ({ direction = "up" } = {}) => {
         );
         applied.add(fileName);
       } else {
-        await client.query("DELETE FROM schema_migrations WHERE file_name = $1", [
-          fileName,
-        ]);
+        await client.query(
+          "DELETE FROM schema_migrations WHERE file_name = $1",
+          [fileName]
+        );
         applied.delete(fileName);
       }
     }

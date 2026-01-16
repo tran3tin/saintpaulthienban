@@ -124,7 +124,10 @@ class BaseModel {
   }
 
   async executeQuery(sql, params = []) {
-    const { query: pgQuery, params: pgParams } = convertPlaceholders(sql, params);
+    const { query: pgQuery, params: pgParams } = convertPlaceholders(
+      sql,
+      params
+    );
     const client = await pool.connect();
     try {
       const result = await client.query(pgQuery, pgParams);

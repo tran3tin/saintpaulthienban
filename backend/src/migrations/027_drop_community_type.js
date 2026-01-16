@@ -4,10 +4,10 @@ const db = require("../config/database");
 const up = async () => {
   const client = await db.getConnection();
   try {
-    await client.query(
-      `ALTER TABLE communities DROP COLUMN IF EXISTS type`
+    await client.query(`ALTER TABLE communities DROP COLUMN IF EXISTS type`);
+    console.log(
+      "✅ Dropped 'type' column from communities table (if it existed)"
     );
-    console.log("✅ Dropped 'type' column from communities table (if it existed)");
   } finally {
     client.release();
   }

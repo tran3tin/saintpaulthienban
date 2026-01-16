@@ -1,5 +1,3 @@
-const fs = require("fs");
-const path = require("path");
 const SisterModel = require("../models/SisterModel");
 const { uploadToFirebase } = require("./uploadController");
 const VocationJourneyModel = require("../models/VocationJourneyModel");
@@ -11,8 +9,6 @@ const {
   checkScopeAccess,
   getSisterCommunityIds,
 } = require("../utils/scopeHelper");
-
-const UPLOADS_ROOT = path.resolve(__dirname, "../uploads");
 
 const permittedViewerRoles = [
   "admin",
@@ -111,12 +107,16 @@ const buildFilters = ({
   }
 
   if (Number.isInteger(minAge)) {
-    clauses.push("EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth))::INT >= ?");
+    clauses.push(
+      "EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth))::INT >= ?"
+    );
     params.push(minAge);
   }
 
   if (Number.isInteger(maxAge)) {
-    clauses.push("EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth))::INT <= ?");
+    clauses.push(
+      "EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth))::INT <= ?"
+    );
     params.push(maxAge);
   }
 
@@ -170,11 +170,6 @@ const getAllSisters = async (req, res) => {
       useJoin: true,
     });
 
-    console.log("[SisterController] userScope:", req.userScope);
-    console.log("[SisterController] scopeWhere:", scopeWhere);
-    console.log("[SisterController] scopeParams:", scopeParams);
-    console.log("[SisterController] needsJoin:", needsJoin);
-
     // Build JOIN clause for vocation_journey if needed for scope filtering
     let joinClause = "";
     if (needsJoin && scopeWhere) {
@@ -196,11 +191,6 @@ const getAllSisters = async (req, res) => {
     const whereClause = prefixedClauses.length
       ? `WHERE ${prefixedClauses.join(" AND ")}`
       : "";
-
-    // Debug: Log the full query
-    console.log("[SisterController] joinClause:", joinClause);
-    console.log("[SisterController] whereClause:", whereClause);
-    console.log("[SisterController] params:", params);
 
     const totalRows = await SisterModel.executeQuery(
       `SELECT COUNT(DISTINCT s.id) AS total FROM sisters s ${joinClause} ${whereClause}`,
@@ -542,22 +532,8 @@ const updateSisterPhoto = async (req, res) => {
   try {
     const { id } = req.params;
 
-    console.log(`📸 Uploading photo for sister ID: ${id}`);
-    console.log(
-      `📁 File received:`,
-      req.file
-        ? {
-            originalname: req.file.originalname,
-            mimetype: req.file.mimetype,
-            size: req.file.size,
-            buffer: req.file.buffer ? "Buffer present" : "No buffer",
-          }
-        : "No file"
-    );
-
     const sister = await SisterModel.findById(id);
     if (!sister) {
-      console.error(`❌ Sister not found: ${id}`);
       return res.status(404).json({ message: "Sister not found" });
     }
 
@@ -570,7 +546,6 @@ const updateSisterPhoto = async (req, res) => {
     );
 
     if (!hasAccess) {
-      console.error(`❌ Access denied for sister ID: ${id}`);
       return res.status(403).json({
         success: false,
         message: "You don't have permission to update this sister's photo",
@@ -578,30 +553,22 @@ const updateSisterPhoto = async (req, res) => {
     }
 
     if (!req.file) {
-      console.error(`❌ No file in request`);
       return res.status(400).json({ message: "Photo file is required" });
     }
 
     // Upload to Firebase
-    console.log(`🚀 Starting Firebase upload...`);
     const uploadResult = await uploadToFirebase(req.file, "photos");
-    console.log(`✅ Firebase upload successful:`, uploadResult);
-
     const photoUrl = uploadResult.url;
 
-    console.log(`💾 Updating database with photo URL...`);
     const updated = await SisterModel.update(id, { photo_url: photoUrl });
     await logAudit(req, "UPDATE", id, sister, updated);
 
-    console.log(`✅ Photo update complete for sister ID: ${id}`);
     return res.status(200).json({ photoUrl });
   } catch (error) {
-    console.error("❌ updateSisterPhoto error:", error);
-    console.error("Error stack:", error.stack);
+    console.error("updateSisterPhoto error:", error.message);
     return res.status(500).json({
       message: "Failed to update photo",
       error: error.message,
-      details: process.env.NODE_ENV === "development" ? error.stack : undefined,
     });
   }
 };
@@ -807,11 +774,15 @@ const searchSisters = async (req, res) => {
       ? parseInt(req.query.maxAge, 10)
       : undefined;
     if (Number.isInteger(minAge)) {
-      filters.push("EXTRACT(YEAR FROM AGE(CURRENT_DATE, s.date_of_birth))::INT >= ?");
+      filters.push(
+        "EXTRACT(YEAR FROM AGE(CURRENT_DATE, s.date_of_birth))::INT >= ?"
+      );
       params.push(minAge);
     }
     if (Number.isInteger(maxAge)) {
-      filters.push("EXTRACT(YEAR FROM AGE(CURRENT_DATE, s.date_of_birth))::INT <= ?");
+      filters.push(
+        "EXTRACT(YEAR FROM AGE(CURRENT_DATE, s.date_of_birth))::INT <= ?"
+      );
       params.push(maxAge);
     }
 

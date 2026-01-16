@@ -50,7 +50,11 @@ class UserCommunityModel extends BaseModel {
           granted_at = CURRENT_TIMESTAMP, 
           granted_by = EXCLUDED.granted_by
       `;
-      const result = await this.executeQuery(query, [userId, commId, grantedBy]);
+      const result = await this.executeQuery(query, [
+        userId,
+        commId,
+        grantedBy,
+      ]);
       results.push(result);
     }
     return results;

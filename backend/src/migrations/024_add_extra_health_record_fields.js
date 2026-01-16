@@ -50,17 +50,27 @@ module.exports = {
   down: async () => {
     const client = await pool.connect();
     try {
-      await client.query("ALTER TABLE health_records DROP COLUMN IF EXISTS doctor");
+      await client.query(
+        "ALTER TABLE health_records DROP COLUMN IF EXISTS doctor"
+      );
       await client.query(
         "ALTER TABLE health_records DROP COLUMN IF EXISTS blood_pressure"
       );
-      await client.query("ALTER TABLE health_records DROP COLUMN IF EXISTS heart_rate");
-      await client.query("ALTER TABLE health_records DROP COLUMN IF EXISTS weight");
-      await client.query("ALTER TABLE health_records DROP COLUMN IF EXISTS height");
+      await client.query(
+        "ALTER TABLE health_records DROP COLUMN IF EXISTS heart_rate"
+      );
+      await client.query(
+        "ALTER TABLE health_records DROP COLUMN IF EXISTS weight"
+      );
+      await client.query(
+        "ALTER TABLE health_records DROP COLUMN IF EXISTS height"
+      );
       await client.query(
         "ALTER TABLE health_records DROP COLUMN IF EXISTS next_checkup_date"
       );
-      await client.query("ALTER TABLE health_records DROP COLUMN IF EXISTS documents");
+      await client.query(
+        "ALTER TABLE health_records DROP COLUMN IF EXISTS documents"
+      );
     } finally {
       client.release();
     }

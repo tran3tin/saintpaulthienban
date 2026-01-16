@@ -3,12 +3,7 @@ import api from "./api";
 const chatbotService = {
   sendMessage: async (data) => {
     try {
-      // Debug: Check token before sending
-      const token = localStorage.getItem("token");
-      console.log("📤 Sending chatbot message, token exists:", !!token);
-
       const response = await api.post("/chatbot/chat", data);
-      console.log("📥 Chatbot response:", response);
       return {
         success: true,
         response: response.response,
@@ -16,7 +11,6 @@ const chatbotService = {
         sources: response.sources || [],
       };
     } catch (error) {
-      console.error("❌ Chatbot error:", error);
       return {
         success: false,
         error:

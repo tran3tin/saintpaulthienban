@@ -115,7 +115,7 @@ class UserModel extends BaseModel {
     // Get connection for transaction
     const connection = await this.pool.getConnection();
     try {
-      await connection.query('BEGIN');
+      await connection.query("BEGIN");
 
       // Remove old permissions
       await connection.query(
@@ -133,12 +133,12 @@ class UserModel extends BaseModel {
         }
       }
 
-      await connection.query('COMMIT');
+      await connection.query("COMMIT");
       console.log(
         `Assigned ${permissionIds?.length || 0} permissions to user ${userId}`
       );
     } catch (error) {
-      await connection.query('ROLLBACK');
+      await connection.query("ROLLBACK");
       console.error("Error assigning permissions:", error);
       throw error;
     } finally {

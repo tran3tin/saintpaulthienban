@@ -312,15 +312,16 @@ const getBackups = async (req, res) => {
 const createBackup = async (req, res) => {
   try {
     // Temporary placeholder - PostgreSQL backup needs pg_dump
-    res.status(501).json({ 
-      success: false, 
-      message: "Backup functionality is being updated for PostgreSQL. Please use pgAdmin or pg_dump manually for now." 
+    res.status(501).json({
+      success: false,
+      message:
+        "Backup functionality is being updated for PostgreSQL. Please use pgAdmin or pg_dump manually for now.",
     });
   } catch (error) {
     console.error("createBackup error:", error);
-    res.status(500).json({ 
-      success: false, 
-      message: "Backup functionality temporarily unavailable" 
+    res.status(500).json({
+      success: false,
+      message: "Backup functionality temporarily unavailable",
     });
   }
 };
@@ -333,13 +334,13 @@ const restoreBackup = async (req, res) => {
   try {
     res.status(501).json({
       success: false,
-      message: "Restore functionality is being updated for PostgreSQL"
+      message: "Restore functionality is being updated for PostgreSQL",
     });
   } catch (error) {
     console.error("restoreBackup error:", error);
     res.status(500).json({
       success: false,
-      message: "Restore functionality temporarily unavailable"
+      message: "Restore functionality temporarily unavailable",
     });
   }
 };

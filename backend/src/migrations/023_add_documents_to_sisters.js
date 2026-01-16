@@ -6,7 +6,9 @@ const up = async () => {
 
   try {
     console.log("Adding documents field to sisters table...");
-    await client.query(`ALTER TABLE sisters ADD COLUMN IF NOT EXISTS documents JSONB`);
+    await client.query(
+      `ALTER TABLE sisters ADD COLUMN IF NOT EXISTS documents JSONB`
+    );
     try {
       await client.query(
         `COMMENT ON COLUMN sisters.documents IS 'JSON array of document files'`

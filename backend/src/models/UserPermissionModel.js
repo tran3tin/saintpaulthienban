@@ -51,7 +51,11 @@ class UserPermissionModel extends BaseModel {
           granted_at = CURRENT_TIMESTAMP, 
           granted_by = EXCLUDED.granted_by
       `;
-      const result = await this.executeQuery(query, [userId, permId, grantedBy]);
+      const result = await this.executeQuery(query, [
+        userId,
+        permId,
+        grantedBy,
+      ]);
       results.push(result);
     }
     return results;

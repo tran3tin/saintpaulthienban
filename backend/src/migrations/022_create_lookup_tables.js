@@ -38,9 +38,24 @@ const up = async () => {
     console.log("✓ Created sister_statuses table");
 
     const journeyStages = [
-      { code: "aspirant", name: "Ứng sinh", display_order: 1, color: "#17a2b8" },
-      { code: "postulant", name: "Tập sinh", display_order: 2, color: "#ffc107" },
-      { code: "novice", name: "Tập sinh khấn", display_order: 3, color: "#fd7e14" },
+      {
+        code: "aspirant",
+        name: "Ứng sinh",
+        display_order: 1,
+        color: "#17a2b8",
+      },
+      {
+        code: "postulant",
+        name: "Tập sinh",
+        display_order: 2,
+        color: "#ffc107",
+      },
+      {
+        code: "novice",
+        name: "Tập sinh khấn",
+        display_order: 3,
+        color: "#fd7e14",
+      },
       {
         code: "temporary_vows",
         name: "Khấn tạm",
@@ -53,7 +68,12 @@ const up = async () => {
         display_order: 5,
         color: "#28a745",
       },
-      { code: "final_vows", name: "Khấn dứt", display_order: 6, color: "#007bff" },
+      {
+        code: "final_vows",
+        name: "Khấn dứt",
+        display_order: 6,
+        color: "#007bff",
+      },
     ];
 
     for (const stage of journeyStages) {
@@ -73,10 +93,25 @@ const up = async () => {
     console.log("✓ Inserted default journey stages");
 
     const sisterStatuses = [
-      { code: "active", name: "Đang hoạt động", display_order: 1, color: "#28a745" },
-      { code: "inactive", name: "Tạm nghỉ", display_order: 2, color: "#ffc107" },
+      {
+        code: "active",
+        name: "Đang hoạt động",
+        display_order: 1,
+        color: "#28a745",
+      },
+      {
+        code: "inactive",
+        name: "Tạm nghỉ",
+        display_order: 2,
+        color: "#ffc107",
+      },
       { code: "leave", name: "Đã rời", display_order: 3, color: "#6c757d" },
-      { code: "deceased", name: "Đã qua đời", display_order: 4, color: "#343a40" },
+      {
+        code: "deceased",
+        name: "Đã qua đời",
+        display_order: 4,
+        color: "#343a40",
+      },
     ];
 
     for (const status of sisterStatuses) {

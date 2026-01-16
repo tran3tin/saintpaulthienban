@@ -10,13 +10,13 @@ const sanitizeUser = (user) => {
   }
 
   const { password, ...rest } = user;
-  
+
   // Normalize is_admin field based on role
   // Database has 'role' field, but frontend expects 'is_admin'
-  if (rest.is_admin === undefined && rest.role === 'admin') {
+  if (rest.is_admin === undefined && rest.role === "admin") {
     rest.is_admin = 1;
   }
-  
+
   return rest;
 };
 

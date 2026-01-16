@@ -16,10 +16,6 @@ const uploadToFirebase = async (file, folder = "osp_uploads") => {
       throw new Error("No file provided");
     }
 
-    console.log(
-      `📤 Uploading file: ${file.originalname} (${file.mimetype}, ${file.size} bytes)`
-    );
-
     // Tạo tên file mới (giữ nguyên đuôi file gốc)
     const fileExtension = path.extname(file.originalname);
     const fileName = `${Date.now()}-${Math.round(
@@ -37,7 +33,6 @@ const uploadToFirebase = async (file, folder = "osp_uploads") => {
 
     return new Promise((resolve, reject) => {
       blobStream.on("error", (err) => {
-        console.error(`❌ Upload error for ${file.originalname}:`, err.message);
         reject(err);
       });
 
@@ -49,20 +44,12 @@ const uploadToFirebase = async (file, folder = "osp_uploads") => {
             expires: "01-01-2100",
           });
 
-          console.log(
-            `✅ Upload successful: ${file.originalname} -> ${fileName}`
-          );
-
           resolve({
             url,
             originalName: file.originalname,
             fileName,
           });
         } catch (error) {
-          console.error(
-            `❌ Error getting signed URL for ${file.originalname}:`,
-            error.message
-          );
           reject(error);
         }
       });
@@ -70,7 +57,6 @@ const uploadToFirebase = async (file, folder = "osp_uploads") => {
       blobStream.end(file.buffer);
     });
   } catch (error) {
-    console.error(`❌ uploadToFirebase error:`, error.message);
     throw error;
   }
 };

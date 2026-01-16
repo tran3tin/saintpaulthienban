@@ -37,15 +37,9 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // Log request in development
-    if (import.meta.env.DEV) {
-      console.log("🚀 Request:", config.method.toUpperCase(), config.url);
-    }
-
     return config;
   },
   (error) => {
-    console.error("❌ Request Error:", error);
     return Promise.reject(error);
   }
 );
@@ -53,11 +47,6 @@ api.interceptors.request.use(
 // Response interceptor
 api.interceptors.response.use(
   (response) => {
-    // Log response in development
-    if (import.meta.env.DEV) {
-      console.log("✅ Response:", response.config.url, response.data);
-    }
-
     return response.data;
   },
   (error) => {
@@ -150,7 +139,6 @@ api.interceptors.response.use(
       toast.error("Có lỗi xảy ra. Vui lòng thử lại.");
     }
 
-    console.error("❌ Response Error:", error);
     return Promise.reject(error);
   }
 );

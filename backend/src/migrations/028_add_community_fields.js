@@ -52,7 +52,9 @@ const down = async () => {
     ];
 
     for (const col of columnsToDrop) {
-      await client.query(`ALTER TABLE communities DROP COLUMN IF EXISTS ${col}`);
+      await client.query(
+        `ALTER TABLE communities DROP COLUMN IF EXISTS ${col}`
+      );
     }
   } finally {
     client.release();

@@ -54,7 +54,9 @@ async function up() {
       );
     }
 
-    console.log("Ensuring stage_at_departure allows NULL (if column exists)...");
+    console.log(
+      "Ensuring stage_at_departure allows NULL (if column exists)..."
+    );
     await client.query(`
       DO $$
       BEGIN

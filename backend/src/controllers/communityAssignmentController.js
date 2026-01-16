@@ -79,20 +79,16 @@ const syncCurrentCommunityId = async (sisterId) => {
       await SisterModel.update(sisterId, {
         current_community_id: currentAssignment.community_id,
       });
-      console.log(
-        `[Sync] Sister ${sisterId} -> Community ${currentAssignment.community_id}`
-      );
     } else {
       // No current assignment, clear the field
       await SisterModel.executeQuery(
         "UPDATE sisters SET current_community_id = NULL WHERE id = ?",
         [sisterId]
       );
-      console.log(`[Sync] Sister ${sisterId} -> No community`);
     }
   } catch (error) {
     console.error(
-      `[Sync] Error syncing current_community_id for sister ${sisterId}:`,
+      `Error syncing current_community_id for sister ${sisterId}:`,
       error.message
     );
   }

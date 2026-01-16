@@ -7,14 +7,14 @@ const up = async () => {
   const client = await pool.connect();
   try {
     // PostgreSQL doesn't have beginTransaction, use BEGIN
-    await client.query('BEGIN');
-    
+    await client.query("BEGIN");
+
     // PostgreSQL uses ON CONFLICT instead of ON DUPLICATE KEY UPDATE
     await client.query(
       `INSERT INTO users (username, password, email, role, is_active)
        VALUES ($1, $2, $3, $4, $5)
        ON CONFLICT (username) DO NOTHING`,
-      ['admin', adminPasswordHash, 'admin@example.com', 'admin', 1]
+      ["admin", adminPasswordHash, "admin@example.com", "admin", 1]
     );
 
     await client.query(
@@ -25,9 +25,9 @@ const up = async () => {
        ON CONFLICT (code) DO NOTHING`
     );
 
-    await client.query('COMMIT');
+    await client.query("COMMIT");
   } catch (error) {
-    await client.query('ROLLBACK');
+    await client.query("ROLLBACK");
     throw error;
   } finally {
     client.release();
@@ -37,14 +37,14 @@ const up = async () => {
 const down = async () => {
   const client = await pool.connect();
   try {
-    await client.query('BEGIN');
+    await client.query("BEGIN");
     await client.query(
       "DELETE FROM communities WHERE code IN ('MH-001','EDU-001')"
     );
     await client.query("DELETE FROM users WHERE username = 'admin'");
-    await client.query('COMMIT');
+    await client.query("COMMIT");
   } catch (error) {
-    await client.query('ROLLBACK');
+    await client.query("ROLLBACK");
     throw error;
   } finally {
     client.release();
