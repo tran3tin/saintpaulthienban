@@ -13,20 +13,23 @@ const initializeFirebase = () => {
 
   // 1. Check for the full JSON env var (preferred for Render/Cloud)
   let serviceAccount = null;
-  
+
   if (process.env.FIREBASE_SERVICE_ACCOUNT) {
     try {
       // Remove potential whitespace or quotes wrapping the JSON
       const rawEnv = process.env.FIREBASE_SERVICE_ACCOUNT.trim();
       serviceAccount = JSON.parse(rawEnv);
     } catch (e) {
-      console.error("❌ Error parsing FIREBASE_SERVICE_ACCOUNT JSON:", e.message);
+      console.error(
+        "❌ Error parsing FIREBASE_SERVICE_ACCOUNT JSON:",
+        e.message,
+      );
     }
   }
 
   if (!serviceAccount) {
     console.warn(
-      "⚠️ FIREBASE_SERVICE_ACCOUNT environment variable is missing or invalid. Firebase storage will be disabled."
+      "⚠️ FIREBASE_SERVICE_ACCOUNT environment variable is missing or invalid. Firebase storage will be disabled.",
     );
     return null;
   }
@@ -34,16 +37,16 @@ const initializeFirebase = () => {
   // 2. Determine Bucket Name
   // Priority: Env Var > Derived from Project ID
   let storageBucket = process.env.FIREBASE_STORAGE_BUCKET;
-  
+
   if (!storageBucket && serviceAccount.project_id) {
-     // Default to standard firebase bucket URL: project-id.appspot.com
-     storageBucket = `${serviceAccount.project_id}.appspot.com`;
-     console.log(`ℹ️ Auto-configured storage bucket: ${storageBucket}`);
+    // Default to standard firebase bucket URL: project-id.appspot.com
+    storageBucket = `${serviceAccount.project_id}.appspot.com`;
+    console.log(`ℹ️ Auto-configured storage bucket: ${storageBucket}`);
   }
 
   if (!storageBucket) {
     console.warn(
-      "⚠️ FIREBASE_STORAGE_BUCKET is missing and could not be derived. Firebase storage disabled."
+      "⚠️ FIREBASE_STORAGE_BUCKET is missing and could not be derived. Firebase storage disabled.",
     );
     return null;
   }

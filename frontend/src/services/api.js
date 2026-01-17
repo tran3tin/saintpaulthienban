@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 
 // Backend URLs - Fallback values if VITE_API_URL is not set
 const LOCALHOST_API = "http://localhost:5000/api";
-const PRODUCTION_API = "https://your-backend.onrender.com/api"; // Update this with your Render backend URL
+const PRODUCTION_API = "https://saintpaulthienban-backend.onrender.com/api"; // Update this with your Render backend URL
 
 // Priority 1: Use VITE_API_URL from environment variable (RECOMMENDED)
 let baseURL = import.meta.env.VITE_API_URL;
@@ -14,7 +14,7 @@ let baseURL = import.meta.env.VITE_API_URL;
 if (!baseURL) {
   baseURL = import.meta.env.DEV ? LOCALHOST_API : PRODUCTION_API;
   console.warn(
-    `⚠️ VITE_API_URL not set. Using fallback: ${baseURL}. Please set VITE_API_URL in .env file.`
+    `⚠️ VITE_API_URL not set. Using fallback: ${baseURL}. Please set VITE_API_URL in .env file.`,
   );
 }
 
@@ -41,7 +41,7 @@ api.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 // Response interceptor
@@ -123,7 +123,7 @@ api.interceptors.response.use(
       // Network error - try fallback to localhost if currently using Railway
       if (api.defaults.baseURL === RAILWAY_API) {
         console.warn(
-          "⚠️ Railway backend unreachable, switching to localhost..."
+          "⚠️ Railway backend unreachable, switching to localhost...",
         );
         api.defaults.baseURL = LOCALHOST_API;
         toast.info("Chuyển sang server local...");
@@ -132,7 +132,7 @@ api.interceptors.response.use(
         return api.request(error.config);
       } else {
         toast.error(
-          "Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng."
+          "Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.",
         );
       }
     } else {
@@ -140,7 +140,7 @@ api.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export default api;
