@@ -32,7 +32,8 @@ if (DATABASE_URL) {
         : false,
     max: 10,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 10000,
+    connectionTimeoutMillis: 60000, // Increased to 60s for cold starts (Supabase/Render)
+    statement_timeout: 60000, // Query timeout
   });
 } else {
   // Priority 2: Use individual connection parameters
@@ -44,7 +45,7 @@ if (DATABASE_URL) {
 
   if (!host || !user || !database) {
     throw new Error(
-      "Missing required database environment variables. Need either DATABASE_URL or DB_HOST/PGHOST, DB_USER/PGUSER, and DB_NAME/PGDATABASE"
+      "Missing required database environment variables. Need either DATABASE_URL or DB_HOST/PGHOST, DB_USER/PGUSER, and DB_NAME/PGDATABASE",
     );
   }
 
@@ -61,7 +62,8 @@ if (DATABASE_URL) {
         : false,
     max: 10,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 10000,
+    connectionTimeoutMillis: 60000, // Increased to 60s for cold starts
+    statement_timeout: 60000,
   });
 }
 
@@ -119,19 +121,36 @@ pool.getConnection = async function () {
   return await pool.connect();
 };
 
+// Test connection with retry logic for cold starts
 (async () => {
-  try {
-    const client = await pool.connect();
-    const result = await client.query("SELECT NOW()");
-    console.log("PostgreSQL connection pool established successfully.");
-    console.log("Server time:", result.rows[0].now);
-    client.release();
-  } catch (error) {
-    console.error(
-      "Failed to initialize PostgreSQL connection pool:",
-      error.message
-    );
-    throw error;
+  const maxRetries = 3;
+  const retryDelayMs = 2000;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`[Database] Connection attempt ${attempt}/${maxRetries}...`);
+      const client = await pool.connect();
+      const result = await client.query("SELECT NOW()");
+      console.log("✅ PostgreSQL connection pool established successfully.");
+      console.log("📅 Server time:", result.rows[0].now);
+      client.release();
+      return; // Success - exit retry loop
+    } catch (error) {
+      console.error(
+        `❌ Database connection attempt ${attempt} failed:`,
+        error.message,
+      );
+
+      if (attempt < maxRetries) {
+        console.log(`⏳ Retrying in ${retryDelayMs / 1000} seconds...`);
+        await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+      } else {
+        console.error(
+          "❌ Failed to connect to database after all retries. Server will continue but database operations may fail.",
+        );
+        // Don't throw - let server start anyway (will fail gracefully on actual queries)
+      }
+    }
   }
 })();
 
