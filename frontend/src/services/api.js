@@ -120,10 +120,10 @@ api.interceptors.response.use(
           toast.error(data.message || "Có lỗi xảy ra. Vui lòng thử lại.");
       }
     } else if (error.request) {
-      // Network error - try fallback to localhost if currently using Railway
-      if (api.defaults.baseURL === RAILWAY_API) {
+      // Network error - try fallback to localhost if currently using Production
+      if (api.defaults.baseURL === PRODUCTION_API) {
         console.warn(
-          "⚠️ Railway backend unreachable, switching to localhost...",
+          "⚠️ Production backend unreachable, switching to localhost...",
         );
         api.defaults.baseURL = LOCALHOST_API;
         toast.info("Chuyển sang server local...");
