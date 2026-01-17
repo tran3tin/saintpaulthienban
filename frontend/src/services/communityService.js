@@ -69,7 +69,7 @@ const communityService = {
   getAssignmentHistory: async (communityId) => {
     try {
       const response = await api.get(
-        API_ENDPOINTS.COMMUNITY_ASSIGNMENT.BY_COMMUNITY(communityId)
+        API_ENDPOINTS.COMMUNITY_ASSIGNMENT.BY_COMMUNITY(communityId),
       );
       return {
         success: true,
@@ -160,7 +160,7 @@ const communityService = {
                 "Content-Type": "multipart/form-data",
               },
             }
-          : undefined
+          : undefined,
       );
       return response;
     } catch (error) {
@@ -177,7 +177,7 @@ const communityService = {
   removeMember: async (id, memberId) => {
     try {
       const response = await api.delete(
-        API_ENDPOINTS.COMMUNITY.REMOVE_MEMBER(id, memberId)
+        API_ENDPOINTS.COMMUNITY.REMOVE_MEMBER(id, memberId),
       );
       return response;
     } catch (error) {
@@ -204,7 +204,7 @@ const communityService = {
                 "Content-Type": "multipart/form-data",
               },
             }
-          : undefined
+          : undefined,
       );
       return response;
     } catch (error) {
@@ -219,6 +219,33 @@ const communityService = {
   getStatistics: async () => {
     try {
       const response = await api.get(API_ENDPOINTS.COMMUNITY.STATISTICS);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  getEvents: async (id) => {
+    try {
+      const response = await api.get(`/communities/${id}/events`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  addEvent: async (id, data) => {
+    try {
+      const response = await api.post(`/communities/${id}/events`, data);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  deleteEvent: async (id, eventId) => {
+    try {
+      const response = await api.delete(`/communities/${id}/events/${eventId}`);
       return response;
     } catch (error) {
       throw error;

@@ -26,7 +26,7 @@ router.post("/change-password", userController.changePassword);
 router.get(
   "/permissions/all",
   checkPermission("users.create"),
-  userController.getAllPermissions
+  userController.getAllPermissions,
 );
 
 router.get("/", checkPermission("users.view"), userController.getAllUsers);
@@ -37,7 +37,7 @@ router.post(
   checkPermission("users.create"),
   validateUserCreate,
   handleValidationErrors,
-  userController.createUser
+  userController.createUser,
 );
 
 router.put("/:id", checkPermission("users.edit"), userController.updateUser);
@@ -47,13 +47,13 @@ router.post(
   "/:id/avatar",
   checkPermission("users.edit"),
   uploadAvatar,
-  userController.uploadUserAvatar
+  userController.uploadUserAvatar,
 );
 
 router.delete(
   "/:id",
   checkPermission("users.delete"),
-  userController.deleteUser
+  userController.deleteUser,
 );
 
 router.post(
@@ -65,13 +65,13 @@ router.post(
     .isLength({ min: 6 })
     .withMessage("newPassword must be at least 6 characters"),
   handleValidationErrors,
-  userController.resetPassword
+  userController.resetPassword,
 );
 
 router.post(
   "/:id/toggle-status",
   checkPermission("users.edit"),
-  userController.toggleUserStatus
+  userController.toggleUserStatus,
 );
 
 router.get("/:id/activities", userController.getUserActivities);
@@ -80,36 +80,36 @@ router.get("/:id/activities", userController.getUserActivities);
 router.get(
   "/:id/permissions",
   checkPermission("users.view"),
-  userController.getUserPermissions
+  userController.getUserPermissions,
 );
 router.put(
   "/:id/permissions",
   checkPermission("users.assign_permissions"),
-  userController.updateUserPermissions
+  userController.updateUserPermissions,
 );
 
 // User communities management
 router.get(
   "/:id/communities",
   checkPermission("users.view"),
-  userController.getUserCommunities
+  userController.getUserCommunities,
 );
 router.post(
   "/:id/communities",
   checkPermission("users.assign_communities"),
-  userController.assignCommunities
+  userController.assignCommunities,
 );
 router.delete(
   "/:id/communities/:communityId",
   checkPermission("users.remove_communities"),
-  userController.removeCommunity
+  userController.removeCommunity,
 );
 
 // Update data scope
 router.put(
   "/:id/data-scope",
   checkPermission("users.update"),
-  userController.updateDataScope
+  userController.updateDataScope,
 );
 
 module.exports = router;

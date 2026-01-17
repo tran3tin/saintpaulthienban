@@ -97,10 +97,10 @@ class ChatbotController {
       if (analysis.entities?.person_name && !entities.sister_id) {
         log(
           "Trying to find sister by AI-detected name:",
-          analysis.entities.person_name
+          analysis.entities.person_name,
         );
         const additionalSearch = await chatbotService.searchSisterByName(
-          analysis.entities.person_name
+          analysis.entities.person_name,
         );
         if (additionalSearch) {
           entities.sister_id = additionalSearch.id;
@@ -139,7 +139,7 @@ class ChatbotController {
         log("Limited context, trying comprehensive search...");
         context = await chatbotService.getComprehensiveContext(
           cleanedMessage,
-          entities
+          entities,
         );
       }
 
@@ -152,7 +152,7 @@ class ChatbotController {
         try {
           const history = await ChatConversationModel.getByConversationId(
             conversation_id,
-            5
+            5,
           );
           conversationHistory = history.flatMap((h) => [
             { role: "user", content: h.user_message },
@@ -168,7 +168,7 @@ class ChatbotController {
       const aiResponse = await openaiService.chat(
         cleanedMessage,
         context,
-        conversationHistory
+        conversationHistory,
       );
       log("AI Response success:", aiResponse.success);
 
@@ -192,7 +192,7 @@ class ChatbotController {
       // ========== STEP 7: Post-process & Return ==========
       const processedResponse = postProcessResponse(
         aiResponse.message,
-        analysis
+        analysis,
       );
 
       // Save conversation
@@ -242,9 +242,8 @@ class ChatbotController {
     try {
       const { conversationId } = req.params;
 
-      const history = await ChatConversationModel.getByConversationId(
-        conversationId
-      );
+      const history =
+        await ChatConversationModel.getByConversationId(conversationId);
 
       const messages = [];
       history.forEach((record) => {
@@ -306,7 +305,7 @@ class ChatbotController {
       await ChatConversationModel.updateFeedback(
         message_id,
         is_helpful,
-        feedback
+        feedback,
       );
 
       return res.json({

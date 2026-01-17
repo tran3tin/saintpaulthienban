@@ -13,7 +13,7 @@ router.post("/chat", chatbotController.chat);
 router.get("/history/:conversationId", chatbotController.getHistory);
 router.delete(
   "/conversation/:conversationId",
-  chatbotController.clearConversation
+  chatbotController.clearConversation,
 );
 router.post("/feedback", chatbotController.submitFeedback);
 

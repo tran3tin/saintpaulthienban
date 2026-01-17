@@ -62,7 +62,9 @@ const getAllMissions = async (req, res) => {
     if (status === "active") {
       whereClauses.push("(m.end_date IS NULL OR m.end_date >= CURRENT_DATE)");
     } else if (status === "completed") {
-      whereClauses.push("(m.end_date IS NOT NULL AND m.end_date < CURRENT_DATE)");
+      whereClauses.push(
+        "(m.end_date IS NOT NULL AND m.end_date < CURRENT_DATE)",
+      );
     }
 
     // Search across multiple fields
@@ -82,7 +84,7 @@ const getAllMissions = async (req, res) => {
         searchPattern,
         searchPattern,
         searchPattern,
-        searchPattern
+        searchPattern,
       );
     }
 
@@ -96,7 +98,7 @@ const getAllMissions = async (req, res) => {
         communityIdColumn: "vj_scope.community_id",
         currentOnly: false,
         useJoin: true,
-      }
+      },
     );
 
     let joinClause = "";
@@ -146,7 +148,7 @@ const getAllMissions = async (req, res) => {
        ${whereClause}
        ORDER BY m.start_date DESC
        LIMIT ? OFFSET ?`,
-      [...params, parseInt(limit), offset]
+      [...params, parseInt(limit), offset],
     );
 
     return res.status(200).json({
@@ -175,7 +177,7 @@ const getMissionsBySister = async (req, res) => {
       req.userScope,
       sisterId,
       "sisters",
-      async (sisterRecord) => sisterRecord.current_community_id
+      async (sisterRecord) => sisterRecord.current_community_id,
     );
 
     if (!hasAccess) {
@@ -219,7 +221,7 @@ const getMissionById = async (req, res) => {
        FROM missions m
        INNER JOIN sisters s ON s.id = m.sister_id
        WHERE m.id = ?`,
-      [id]
+      [id],
     );
 
     if (!missions || missions.length === 0) {
@@ -255,6 +257,8 @@ const createMission = async (req, res) => {
       sister_id: sisterId,
       field,
       specific_role: specificRole,
+      organization,
+      address,
       start_date: startDate,
       end_date: endDate,
       notes,
@@ -288,6 +292,8 @@ const createMission = async (req, res) => {
       sister_id: sisterId,
       field,
       specific_role: specificRole || null,
+      organization: organization || null,
+      address: address || null,
       start_date: startDate,
       end_date: normalizedEndDate,
       notes: notes || null,
@@ -295,12 +301,20 @@ const createMission = async (req, res) => {
     };
 
     const created = await MissionModel.create(payload);
-    await logAudit(req, "CREATE", created.id, null, created);
+
+    try {
+      await logAudit(req, "CREATE", created.id, null, created);
+    } catch (logErr) {
+      console.error("Audit log failed but mission created:", logErr);
+    }
 
     return res.status(201).json({ mission: created });
   } catch (error) {
-    console.error("createMission error:", error.message);
-    return res.status(500).json({ message: "Failed to create mission" });
+    console.error("createMission error full:", error);
+    return res.status(500).json({
+      message: "Failed to create mission: " + error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+    });
   }
 };
 
@@ -309,7 +323,7 @@ const updateMission = async (req, res) => {
     const { id } = req.params;
     const existingRows = await MissionModel.executeQuery(
       "SELECT * FROM missions WHERE id = ?",
-      [id]
+      [id],
     );
     const mission = existingRows[0];
     if (!mission) {
@@ -323,7 +337,7 @@ const updateMission = async (req, res) => {
         req.userScope,
         mission.sister_id,
         "sisters",
-        async (sisterRecord) => sisterRecord.current_community_id
+        async (sisterRecord) => sisterRecord.current_community_id,
       );
 
       if (!hasAccess) {
@@ -338,6 +352,8 @@ const updateMission = async (req, res) => {
       "sister_id",
       "field",
       "specific_role",
+      "organization",
+      "address",
       "start_date",
       "end_date",
       "notes",
@@ -401,7 +417,7 @@ const endMission = async (req, res) => {
     const { id } = req.params;
     const existingRows = await MissionModel.executeQuery(
       "SELECT * FROM missions WHERE id = ?",
-      [id]
+      [id],
     );
     const mission = existingRows[0];
     if (!mission) {
@@ -415,7 +431,7 @@ const endMission = async (req, res) => {
         req.userScope,
         mission.sister_id,
         "sisters",
-        async (sisterRecord) => sisterRecord.current_community_id
+        async (sisterRecord) => sisterRecord.current_community_id,
       );
 
       if (!hasAccess) {
@@ -462,7 +478,7 @@ const getSistersByMissionField = async (req, res) => {
         communityIdColumn: "vj_scope.community_id",
         currentOnly: false,
         useJoin: true,
-      }
+      },
     );
 
     let joinClause = "";
@@ -496,7 +512,7 @@ const getSistersByMissionField = async (req, res) => {
        ${joinClause}
        ${whereClause}
        ORDER BY s.religious_name`,
-      params
+      params,
     );
 
     return res.status(200).json({ data: sisters });
@@ -513,7 +529,7 @@ const deleteMission = async (req, res) => {
     const { id } = req.params;
     const existingRows = await MissionModel.executeQuery(
       "SELECT * FROM missions WHERE id = ?",
-      [id]
+      [id],
     );
     const mission = existingRows[0];
     if (!mission) {

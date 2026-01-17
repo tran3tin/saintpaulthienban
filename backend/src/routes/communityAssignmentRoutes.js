@@ -10,38 +10,38 @@ router.use(authenticateToken);
 router.post(
   "/",
   checkPermission("community_assignment.create"),
-  communityAssignmentController.assignSisterToCommunity
+  communityAssignmentController.assignSisterToCommunity,
 );
 router.put(
   "/:id",
-  checkPermission("community_assignment.edit"),
-  communityAssignmentController.updateAssignment
+  checkPermission("community_assignment.update"),
+  communityAssignmentController.updateAssignment,
 );
 router.delete(
   "/:id",
   checkPermission("community_assignment.delete"),
-  communityAssignmentController.endAssignment
+  communityAssignmentController.endAssignment,
 );
 router.get(
   "/sister/:sisterId",
   checkPermission("community_assignment.view"),
-  communityAssignmentController.getAssignmentHistory
+  communityAssignmentController.getAssignmentHistory,
 );
 router.get(
   "/community/:communityId",
   checkPermission("community_assignment.view"),
-  communityAssignmentController.getAssignmentsByCommunity
+  communityAssignmentController.getAssignmentsByCommunity,
 );
 router.get(
   "/sister/:sisterId/current",
   checkPermission("community_assignment.view"),
-  communityAssignmentController.getCurrentAssignment
+  communityAssignmentController.getCurrentAssignment,
 );
 router.post(
   "/:id/decision-file",
-  checkPermission("community_assignment.edit"),
+  checkPermission("community_assignment.update"),
   uploadDocument,
-  communityAssignmentController.uploadDecisionFile
+  communityAssignmentController.uploadDecisionFile,
 );
 
 module.exports = router;

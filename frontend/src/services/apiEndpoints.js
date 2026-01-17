@@ -73,6 +73,7 @@ export const API_ENDPOINTS = {
     REMOVE_MEMBER: (id, memberId) => `/communities/${id}/members/${memberId}`,
     UPDATE_MEMBER_ROLE: (id, memberId) =>
       `/communities/${id}/members/${memberId}`,
+    EVENTS: (id) => `/communities/${id}/events`,
     STATISTICS: "/communities/statistics",
   },
 

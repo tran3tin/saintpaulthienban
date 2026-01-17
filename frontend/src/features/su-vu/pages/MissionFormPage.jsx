@@ -172,7 +172,7 @@ const MissionFormPage = () => {
 
       if (result.success) {
         toast.success(
-          isEditMode ? "Cập nhật sứ vụ thành công!" : "Thêm sứ vụ thành công!"
+          isEditMode ? "Cập nhật sứ vụ thành công!" : "Thêm sứ vụ thành công!",
         );
         if (sisterId) {
           navigate(`/nu-tu/${sisterId}/su-vu`);

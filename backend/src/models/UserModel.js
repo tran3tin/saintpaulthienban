@@ -10,7 +10,7 @@ class UserModel extends BaseModel {
       "full_name",
       "phone",
       "avatar",
-      // "role", // Removed role field as it doesn't exist in DB
+      "role", // Re-enabled role field
       "is_admin",
       "last_login",
       "is_active",
@@ -76,7 +76,7 @@ class UserModel extends BaseModel {
     const now = new Date();
     await this.executeQuery(
       `UPDATE ${this.tableName} SET last_login = ? WHERE ${this.primaryKey} = ?`,
-      [now, id]
+      [now, id],
     );
     return this.findById(id);
   }
@@ -120,7 +120,7 @@ class UserModel extends BaseModel {
       // Remove old permissions
       await connection.query(
         "DELETE FROM user_permissions WHERE user_id = $1",
-        [userId]
+        [userId],
       );
 
       // Add new permissions one by one
@@ -128,14 +128,14 @@ class UserModel extends BaseModel {
         for (const permId of permissionIds) {
           await connection.query(
             "INSERT INTO user_permissions (user_id, permission_id, granted_by) VALUES ($1, $2, $3)",
-            [userId, permId, grantedBy]
+            [userId, permId, grantedBy],
           );
         }
       }
 
       await connection.query("COMMIT");
       console.log(
-        `Assigned ${permissionIds?.length || 0} permissions to user ${userId}`
+        `Assigned ${permissionIds?.length || 0} permissions to user ${userId}`,
       );
     } catch (error) {
       await connection.query("ROLLBACK");

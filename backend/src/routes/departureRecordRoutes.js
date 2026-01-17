@@ -16,49 +16,49 @@ router.use(attachDataScope);
 router.get(
   "/",
   checkPermission("departure.view"),
-  departureRecordController.getDepartureRecords
+  departureRecordController.getDepartureRecords,
 );
 
 // Get statistics
 router.get(
   "/statistics",
   checkPermission("departure.view"),
-  departureRecordController.getDepartureStatistics
+  departureRecordController.getDepartureStatistics,
 );
 
 // Get departures by sister
 router.get(
   "/sister/:sisterId",
   checkPermission("departure.view"),
-  departureRecordController.getDepartureRecordBySister
+  departureRecordController.getDepartureRecordBySister,
 );
 
 // Get single departure by ID
 router.get(
   "/:id",
   checkPermission("departure.view"),
-  departureRecordController.getDepartureRecordById
+  departureRecordController.getDepartureRecordById,
 );
 
 // Create new departure
 router.post(
   "/",
   checkPermission("departure.create"),
-  departureRecordController.createDepartureRecord
+  departureRecordController.createDepartureRecord,
 );
 
 // Update departure
 router.put(
   "/:id",
-  checkPermission("departure.edit"),
-  departureRecordController.updateDepartureRecord
+  checkPermission("departure.update"),
+  departureRecordController.updateDepartureRecord,
 );
 
 // Delete departure
 router.delete(
   "/:id",
   checkPermission("departure.delete"),
-  departureRecordController.deleteDepartureRecord
+  departureRecordController.deleteDepartureRecord,
 );
 
 module.exports = router;

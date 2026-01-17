@@ -1,5 +1,46 @@
 const { getBucket } = require("../config/firebase");
 const path = require("path");
+const fs = require("fs");
+
+// Helper to save file locally
+const uploadToLocal = async (file, folder = "documents") => {
+  try {
+    // Generate unique filename
+    const fileExtension = path.extname(file.originalname);
+    const fileName = `${Date.now()}-${Math.round(
+      Math.random() * 1e9,
+    )}${fileExtension}`;
+
+    // Target directory (src/uploads/{folder})
+    // Note: __dirname is src/controllers, so ../uploads is src/uploads
+    const uploadDir = path.join(__dirname, "../uploads", folder);
+
+    // Create directory if not exists
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    const filePath = path.join(uploadDir, fileName);
+
+    // Write file buffer to disk
+    await fs.promises.writeFile(filePath, file.buffer);
+
+    // Return URL relative to server root
+    // server.js serves /uploads mapped to src/uploads
+    const fullUrl = `http://localhost:5000/uploads/${folder}/${fileName}`;
+
+    console.log("✅ File saved locally:", fullUrl);
+
+    return {
+      url: fullUrl,
+      originalName: file.originalname,
+      fileName,
+    };
+  } catch (error) {
+    console.error("❌ Local upload error:", error);
+    throw error;
+  }
+};
 
 // Hàm helper để upload file lên Firebase Storage
 const uploadToFirebase = async (file, folder = "osp_uploads") => {
@@ -7,9 +48,7 @@ const uploadToFirebase = async (file, folder = "osp_uploads") => {
     const bucket = getBucket();
 
     if (!bucket) {
-      throw new Error(
-        "Firebase Storage not initialized. Check FIREBASE_SERVICE_ACCOUNT and FIREBASE_STORAGE_BUCKET environment variables."
-      );
+      throw new Error("Firebase Storage not initialized");
     }
 
     if (!file) {
@@ -19,7 +58,7 @@ const uploadToFirebase = async (file, folder = "osp_uploads") => {
     // Tạo tên file mới (giữ nguyên đuôi file gốc)
     const fileExtension = path.extname(file.originalname);
     const fileName = `${Date.now()}-${Math.round(
-      Math.random() * 1e9
+      Math.random() * 1e9,
     )}${fileExtension}`;
 
     // Tạo reference trên Firebase
@@ -57,7 +96,23 @@ const uploadToFirebase = async (file, folder = "osp_uploads") => {
       blobStream.end(file.buffer);
     });
   } catch (error) {
+    // console.warn("Firebase upload failed, trying local fallback...");
+    // If firebase fails, throw to let the caller handle fallback
     throw error;
+  }
+};
+
+// Wrapper to handle upload strategy (Firebase -> Local Fallback)
+const processFileUpload = async (file) => {
+  try {
+    // Try Firebase first
+    return await uploadToFirebase(file);
+  } catch (error) {
+    console.warn(
+      `⚠️ Firebase upload failed (${error.message}). Falling back to local storage.`,
+    );
+    // Fallback to local
+    return await uploadToLocal(file);
   }
 };
 
@@ -68,7 +123,7 @@ const uploadFile = async (req, res) => {
       return res.status(400).json({ message: "Vui lòng chọn file!" });
     }
 
-    const result = await uploadToFirebase(req.file);
+    const result = await processFileUpload(req.file);
 
     res.status(200).json({
       message: "Upload thành công",
@@ -88,7 +143,7 @@ const uploadMultipleFiles = async (req, res) => {
       return res.status(400).json({ message: "Vui lòng chọn file!" });
     }
 
-    const uploadPromises = req.files.map((file) => uploadToFirebase(file));
+    const uploadPromises = req.files.map((file) => processFileUpload(file));
     const results = await Promise.all(uploadPromises);
 
     res.status(200).json({
@@ -105,4 +160,6 @@ module.exports = {
   uploadFile,
   uploadMultipleFiles,
   uploadToFirebase,
+  processFileUpload,
+  uploadToLocal,
 };

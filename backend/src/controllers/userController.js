@@ -92,7 +92,7 @@ const getAllUsers = async (req, res) => {
     }
 
     const users = await UserModel.executeQuery(
-      "SELECT * FROM users ORDER BY created_at DESC"
+      "SELECT * FROM users ORDER BY created_at DESC",
     );
 
     const sanitizedUsers = users.map(sanitizeUser);
@@ -120,6 +120,10 @@ const getUserById = async (req, res) => {
     }
 
     const { id } = req.params;
+    if (!id || id === "undefined" || id === "null" || isNaN(Number(id))) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
+
     if (!canManageUser(req, id)) {
       return res.status(403).json({ message: "Forbidden" });
     }
@@ -211,7 +215,7 @@ const createUser = async (req, res) => {
     // Check if email already exists
     const existingEmail = await UserModel.executeQuery(
       "SELECT id FROM users WHERE email = ?",
-      [email]
+      [email],
     );
     if (existingEmail.length > 0) {
       return res.status(409).json({
@@ -290,7 +294,7 @@ const updateUser = async (req, res) => {
         // Check if email already exists for another user
         const existingEmail = await UserModel.executeQuery(
           "SELECT id FROM users WHERE email = ? AND id != ?",
-          [email, id]
+          [email, id],
         );
         if (existingEmail.length > 0) {
           errors.email = "Email đã tồn tại";
@@ -344,7 +348,7 @@ const updateUser = async (req, res) => {
       "UPDATE",
       id,
       sanitizeUser(user),
-      sanitizeUser(updated)
+      sanitizeUser(updated),
     );
 
     return res.status(200).json({
@@ -459,7 +463,7 @@ const toggleUserStatus = async (req, res) => {
       "TOGGLE_STATUS",
       id,
       sanitizeUser(user),
-      sanitizeUser(updated)
+      sanitizeUser(updated),
     );
 
     return res.status(200).json({
@@ -498,7 +502,7 @@ const updateProfile = async (req, res) => {
       if (email !== user.email) {
         const existingEmail = await UserModel.executeQuery(
           "SELECT id FROM users WHERE email = ? AND id != ?",
-          [email, userId]
+          [email, userId],
         );
         if (existingEmail.length > 0) {
           return res
@@ -536,7 +540,7 @@ const updateProfile = async (req, res) => {
       "UPDATE_PROFILE",
       userId,
       sanitizeUser(user),
-      sanitizeUser(updated)
+      sanitizeUser(updated),
     );
 
     return res.status(200).json({
@@ -617,7 +621,7 @@ const getUserActivities = async (req, res) => {
        WHERE user_id = ? 
        ORDER BY created_at DESC 
        LIMIT 50`,
-      [id]
+      [id],
     );
 
     return res.status(200).json({
@@ -813,10 +817,10 @@ const getUserPermissions = async (req, res) => {
   try {
     const { id } = req.params;
 
-    if (!id) {
+    if (!id || id === "undefined" || id === "null" || isNaN(Number(id))) {
       return res.status(400).json({
         success: false,
-        message: "ID người dùng là bắt buộc",
+        message: "ID người dùng không hợp lệ",
       });
     }
 
@@ -842,10 +846,10 @@ const getUserCommunities = async (req, res) => {
   try {
     const { id } = req.params;
 
-    if (!id) {
+    if (!id || id === "undefined" || id === "null" || isNaN(Number(id))) {
       return res.status(400).json({
         success: false,
-        message: "ID người dùng là bắt buộc",
+        message: "ID người dùng không hợp lệ",
       });
     }
 
@@ -855,7 +859,7 @@ const getUserCommunities = async (req, res) => {
        INNER JOIN user_communities uc ON uc.community_id = c.id
        WHERE uc.user_id = ?
        ORDER BY c.name`,
-      [id]
+      [id],
     );
 
     return res.status(200).json({
@@ -909,15 +913,24 @@ const assignCommunities = async (req, res) => {
     // Delete existing assignments
     await UserModel.executeQuery(
       "DELETE FROM user_communities WHERE user_id = ?",
-      [id]
+      [id],
     );
 
     // Insert new assignments
     if (community_ids.length > 0) {
-      const values = community_ids.map((cid) => [id, cid, req.user.id]);
+      // Postgres: Construct VALUES ($1, $2, $3), ($4, $5, $6)...
+      const placeholders = community_ids
+        .map((_, i) => `($${i * 3 + 1}, $${i * 3 + 2}, $${i * 3 + 3})`)
+        .join(", ");
+
+      const flatValues = [];
+      community_ids.forEach((cid) => {
+        flatValues.push(id, cid, req.user.id);
+      });
+
       await UserModel.executeQuery(
-        `INSERT INTO user_communities (user_id, community_id, granted_by) VALUES ?`,
-        [values]
+        `INSERT INTO user_communities (user_id, community_id, granted_by) VALUES ${placeholders}`,
+        flatValues,
       );
     }
 
@@ -961,7 +974,7 @@ const removeCommunity = async (req, res) => {
 
     await UserModel.executeQuery(
       "DELETE FROM user_communities WHERE user_id = ? AND community_id = ?",
-      [id, communityId]
+      [id, communityId],
     );
 
     // Clear scope cache
@@ -1032,7 +1045,7 @@ const updateDataScope = async (req, res) => {
       "UPDATE_DATA_SCOPE",
       id,
       { data_scope: user.data_scope },
-      { data_scope }
+      { data_scope },
     );
 
     return res.status(200).json({
@@ -1065,7 +1078,7 @@ const uploadUserAvatar = async (req, res) => {
             size: req.file.size,
             buffer: req.file.buffer ? "Buffer present" : "No buffer",
           }
-        : "No file"
+        : "No file",
     );
 
     const user = await UserModel.findById(id);

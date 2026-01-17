@@ -329,6 +329,8 @@ const createSister = async (req, res) => {
         if (!isNaN(date.getTime())) {
           payload[field] = date.toISOString().split("T")[0];
         }
+      } else if (payload[field] === "") {
+        payload[field] = null;
       }
     });
 
@@ -436,6 +438,8 @@ const updateSister = async (req, res) => {
         if (!isNaN(date.getTime())) {
           updateData[field] = date.toISOString().split("T")[0];
         }
+      } else if (updateData[field] === "") {
+        updateData[field] = null;
       }
     });
 

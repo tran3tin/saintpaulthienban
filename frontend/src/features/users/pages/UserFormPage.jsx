@@ -28,12 +28,14 @@ import "./UserDetailPage.css";
 const UserFormPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const isEditMode = !!id;
+  // Ensure id is not "undefined" or "null" string accidentally passed by router or links
+  const isEditMode =
+    !!id && id !== "undefined" && id !== "null" && id !== "create";
   const { user, updateUser } = useAuth();
   const canViewCommunities =
     Array.isArray(user?.permissions) &&
     user.permissions.some((p) =>
-      ["communities.view", "communities.view_list"].includes(p)
+      ["communities.view", "communities.view_list"].includes(p),
     );
 
   const [loading, setLoading] = useState(isEditMode);
@@ -259,7 +261,7 @@ const UserFormPage = () => {
           } catch (uploadError) {
             console.error("Avatar upload failed:", uploadError);
             toast.warning(
-              "Ảnh đại diện chưa được cập nhật. Thông tin đã lưu nhưng tải ảnh thất bại."
+              "Ảnh đại diện chưa được cập nhật. Thông tin đã lưu nhưng tải ảnh thất bại.",
             );
           }
         }
@@ -273,7 +275,7 @@ const UserFormPage = () => {
           } catch (uploadError) {
             console.error("Avatar upload failed:", uploadError);
             toast.warning(
-              "Ảnh đại diện chưa được tải lên. Người dùng đã được tạo nhưng ảnh chưa được lưu."
+              "Ảnh đại diện chưa được tải lên. Người dùng đã được tạo nhưng ảnh chưa được lưu.",
             );
           }
         }
@@ -282,7 +284,19 @@ const UserFormPage = () => {
       console.log("API response:", response);
 
       if (response.success) {
-        const userId = isEditMode ? id : response.data.id;
+        // Handle different response structures:
+        // 1. response.data.data.id (nested data object)
+        // 2. response.data.id (flat object)
+        // 3. response.data.user.id (some endpoints return { user: ... })
+        const createdUserId =
+          response.data?.data?.id ||
+          response.data?.id ||
+          response.data?.user?.id;
+        const userId = isEditMode ? id : createdUserId;
+
+        if (!userId) {
+          console.error("Could not determine User ID from response:", response);
+        }
 
         // Update permissions
         await userService.updateUserPermissions(userId, selectedPermissions);
@@ -364,7 +378,7 @@ const UserFormPage = () => {
   const handleCancel = () => {
     if (
       window.confirm(
-        "Bạn có chắc chắn muốn hủy? Các thay đổi sẽ không được lưu."
+        "Bạn có chắc chắn muốn hủy? Các thay đổi sẽ không được lưu.",
       )
     ) {
       navigate(isEditMode ? `/users/${id}` : "/users");
@@ -375,7 +389,7 @@ const UserFormPage = () => {
     setSelectedPermissions((prev) =>
       prev.includes(permissionId)
         ? prev.filter((id) => id !== permissionId)
-        : [...prev, permissionId]
+        : [...prev, permissionId],
     );
   };
 
@@ -383,13 +397,13 @@ const UserFormPage = () => {
     const modulePermissions = allPermissions[module] || [];
     const modulePermissionIds = modulePermissions.map((p) => p.id);
     const allSelected = modulePermissionIds.every((id) =>
-      selectedPermissions.includes(id)
+      selectedPermissions.includes(id),
     );
 
     if (allSelected) {
       // Deselect all in this module
       setSelectedPermissions((prev) =>
-        prev.filter((id) => !modulePermissionIds.includes(id))
+        prev.filter((id) => !modulePermissionIds.includes(id)),
       );
     } else {
       // Select all in this module
@@ -403,7 +417,7 @@ const UserFormPage = () => {
   const handleCommunityToggle = (communityId) => {
     if (selectedCommunities.includes(communityId)) {
       setSelectedCommunities(
-        selectedCommunities.filter((id) => id !== communityId)
+        selectedCommunities.filter((id) => id !== communityId),
       );
     } else {
       setSelectedCommunities([...selectedCommunities, communityId]);
@@ -678,7 +692,7 @@ const UserFormPage = () => {
                               <Form.Check
                                 type="checkbox"
                                 checked={selectedCommunities.includes(
-                                  community.id
+                                  community.id,
                                 )}
                                 onChange={() =>
                                   handleCommunityToggle(community.id)
@@ -731,15 +745,15 @@ const UserFormPage = () => {
                         {Object.entries(allPermissions).map(
                           ([module, permissions]) => {
                             const modulePermissionIds = permissions.map(
-                              (p) => p.id
+                              (p) => p.id,
                             );
                             const allSelected = modulePermissionIds.every(
-                              (id) => selectedPermissions.includes(id)
+                              (id) => selectedPermissions.includes(id),
                             );
                             const someSelected =
                               !allSelected &&
                               modulePermissionIds.some((id) =>
-                                selectedPermissions.includes(id)
+                                selectedPermissions.includes(id),
                               );
 
                             // Get module icon based on module name
@@ -796,7 +810,7 @@ const UserFormPage = () => {
                                     <strong>
                                       <i
                                         className={`fas ${getModuleIcon(
-                                          module
+                                          module,
                                         )} me-2 ${getModuleColor(module)}`}
                                       ></i>
                                       {module}
@@ -841,7 +855,7 @@ const UserFormPage = () => {
                                       <Form.Check
                                         type="checkbox"
                                         checked={selectedPermissions.includes(
-                                          permission.id
+                                          permission.id,
                                         )}
                                         onChange={() =>
                                           handlePermissionToggle(permission.id)
@@ -853,7 +867,7 @@ const UserFormPage = () => {
                                 ))}
                               </React.Fragment>
                             );
-                          }
+                          },
                         )}
                       </tbody>
                     </Table>

@@ -4,7 +4,7 @@ const BaseModel = require("./BaseModel");
 
 class UserPermissionModel extends BaseModel {
   constructor() {
-    super("user_permissions");
+    super({ tableName: "user_permissions" });
   }
 
   /**
@@ -45,7 +45,7 @@ class UserPermissionModel extends BaseModel {
     const results = [];
     for (const permId of permissionIds) {
       const query = `
-        INSERT INTO ${this.table} (user_id, permission_id, granted_by)
+        INSERT INTO ${this.tableName} (user_id, permission_id, granted_by)
         VALUES ($1, $2, $3)
         ON CONFLICT (user_id, permission_id) DO UPDATE SET 
           granted_at = CURRENT_TIMESTAMP, 
@@ -69,7 +69,7 @@ class UserPermissionModel extends BaseModel {
 
     const placeholders = permissionIds.map((_, i) => `$${i + 2}`).join(",");
     const query = `
-      DELETE FROM ${this.table} 
+      DELETE FROM ${this.tableName} 
       WHERE user_id = $1 AND permission_id IN (${placeholders})
     `;
 
@@ -92,9 +92,10 @@ class UserPermissionModel extends BaseModel {
       await connection.beginTransaction();
 
       // Delete all existing permissions
-      await connection.query(`DELETE FROM ${this.table} WHERE user_id = ?`, [
-        userId,
-      ]);
+      await connection.query(
+        `DELETE FROM ${this.tableName} WHERE user_id = ?`,
+        [userId]
+      );
 
       // Add new permissions
       if (permissionIds && permissionIds.length > 0) {
@@ -104,7 +105,7 @@ class UserPermissionModel extends BaseModel {
           grantedBy,
         ]);
         await connection.query(
-          `INSERT INTO ${this.table} (user_id, permission_id, granted_by) VALUES ?`,
+          `INSERT INTO ${this.tableName} (user_id, permission_id, granted_by) VALUES ?`,
           [values]
         );
       }

@@ -50,57 +50,51 @@ const AVAILABLE_PERMISSIONS = [
 
   // ===== QUẢN LÝ NỮ TU =====
   {
-    key: "sisters_view",
+    key: "sisters.view",
     name: "Xem danh sách nữ tu",
     module: "Quản lý Nữ Tu",
     icon: "users",
   },
   {
-    key: "sisters_create",
+    key: "sisters.create",
     name: "Thêm nữ tu mới",
     module: "Quản lý Nữ Tu",
     icon: "user-plus",
   },
   {
-    key: "sisters_edit",
+    key: "sisters.update",
     name: "Chỉnh sửa thông tin nữ tu",
     module: "Quản lý Nữ Tu",
     icon: "user-edit",
   },
   {
-    key: "sisters_delete",
+    key: "sisters.delete",
     name: "Xóa nữ tu",
     module: "Quản lý Nữ Tu",
     icon: "user-minus",
   },
-  {
-    key: "sisters_export",
-    name: "Xuất dữ liệu nữ tu",
-    module: "Quản lý Nữ Tu",
-    icon: "file-export",
-  },
 
   // ===== HÀNH TRÌNH ƠN GỌI =====
   {
-    key: "journey_view",
+    key: "journey.view",
     name: "Xem hành trình ơn gọi",
     module: "Hành trình Ơn Gọi",
     icon: "route",
   },
   {
-    key: "journey_create",
+    key: "journey.create",
     name: "Thêm giai đoạn mới",
     module: "Hành trình Ơn Gọi",
     icon: "plus-circle",
   },
   {
-    key: "journey_edit",
+    key: "journey.update",
     name: "Chỉnh sửa hành trình",
     module: "Hành trình Ơn Gọi",
     icon: "edit",
   },
   {
-    key: "journey_delete",
+    key: "journey.delete",
     name: "Xóa giai đoạn",
     module: "Hành trình Ơn Gọi",
     icon: "trash",
@@ -120,7 +114,7 @@ const AVAILABLE_PERMISSIONS = [
     icon: "plus",
   },
   {
-    key: "communities.edit",
+    key: "communities.update",
     name: "Chỉnh sửa cộng đoàn",
     module: "Quản lý Cộng Đoàn",
     icon: "edit",
@@ -131,46 +125,80 @@ const AVAILABLE_PERMISSIONS = [
     module: "Quản lý Cộng Đoàn",
     icon: "trash",
   },
+
+  // ===== BỔ NHIỆM / PHÂN CÔNG =====
   {
-    key: "communities.assign",
-    name: "Phân công nữ tu",
-    module: "Quản lý Cộng Đoàn",
-    icon: "user-check",
+    key: "community_assignment.view",
+    name: "Xem thông tin bổ nhiệm",
+    module: "Bổ nhiệm & Phân công",
+    icon: "exchange-alt",
   },
   {
-    key: "communities.history_view",
-    name: "Xem lịch sử hình thành",
-    module: "Quản lý Cộng Đoàn",
-    icon: "book",
+    key: "community_assignment.create",
+    name: "Phân bổ chị em",
+    module: "Bổ nhiệm & Phân công",
+    icon: "plus-circle",
   },
   {
-    key: "communities.history_edit",
-    name: "Chỉnh sửa lịch sử hình thành",
-    module: "Quản lý Cộng Đoàn",
-    icon: "book-open",
+    key: "community_assignment.update",
+    name: "Chỉnh sửa phân bổ",
+    module: "Bổ nhiệm & Phân công",
+    icon: "edit",
+  },
+  {
+    key: "community_assignment.delete",
+    name: "Kết thúc/Xóa phân bổ",
+    module: "Bổ nhiệm & Phân công",
+    icon: "trash",
+  },
+
+  // ===== LỊCH ĐI VẮNG =====
+  {
+    key: "departure.view",
+    name: "Xem lịch đi vắng",
+    module: "Quản lý Đi vắng",
+    icon: "plane-departure",
+  },
+  {
+    key: "departure.create",
+    name: "Thêm lịch đi vắng",
+    module: "Quản lý Đi vắng",
+    icon: "plus",
+  },
+  {
+    key: "departure.update",
+    name: "Chỉnh sửa lịch đi vắng",
+    module: "Quản lý Đi vắng",
+    icon: "edit",
+  },
+  {
+    key: "departure.delete",
+    name: "Xóa lịch đi vắng",
+    module: "Quản lý Đi vắng",
+    icon: "trash",
   },
 
   // ===== HỌC VẤN =====
   {
-    key: "education_view",
+    key: "education.view",
     name: "Xem thông tin học vấn",
     module: "Học Vấn",
     icon: "graduation-cap",
   },
   {
-    key: "education_create",
+    key: "education.create",
     name: "Thêm bằng cấp",
     module: "Học Vấn",
     icon: "plus",
   },
   {
-    key: "education_edit",
+    key: "education.update",
     name: "Chỉnh sửa học vấn",
     module: "Học Vấn",
     icon: "edit",
   },
   {
-    key: "education_delete",
+    key: "education.delete",
     name: "Xóa bằng cấp",
     module: "Học Vấn",
     icon: "trash",
@@ -178,51 +206,51 @@ const AVAILABLE_PERMISSIONS = [
 
   // ===== SỨ VỤ =====
   {
-    key: "mission_view",
+    key: "missions.view",
     name: "Xem sứ vụ",
     module: "Sứ Vụ",
     icon: "briefcase",
   },
   {
-    key: "mission_create",
+    key: "missions.create",
     name: "Tạo sứ vụ mới",
     module: "Sứ Vụ",
     icon: "plus",
   },
   {
-    key: "mission_edit",
+    key: "missions.update",
     name: "Chỉnh sửa sứ vụ",
     module: "Sứ Vụ",
     icon: "edit",
   },
   {
-    key: "mission_assign",
-    name: "Phân công sứ vụ",
+    key: "missions.delete",
+    name: "Xóa sứ vụ",
     module: "Sứ Vụ",
-    icon: "user-tag",
+    icon: "trash",
   },
 
   // ===== SỨC KHỎE =====
   {
-    key: "health_view",
+    key: "health.view",
     name: "Xem hồ sơ sức khỏe",
     module: "Sức Khỏe",
     icon: "heartbeat",
   },
   {
-    key: "health_create",
+    key: "health.create",
     name: "Thêm hồ sơ sức khỏe",
     module: "Sức Khỏe",
     icon: "notes-medical",
   },
   {
-    key: "health_edit",
+    key: "health.update",
     name: "Chỉnh sửa hồ sơ sức khỏe",
     module: "Sức Khỏe",
     icon: "edit",
   },
   {
-    key: "health_delete",
+    key: "health.delete",
     name: "Xóa hồ sơ sức khỏe",
     module: "Sức Khỏe",
     icon: "trash",
@@ -230,89 +258,77 @@ const AVAILABLE_PERMISSIONS = [
 
   // ===== ĐÁNH GIÁ =====
   {
-    key: "evaluation_view",
+    key: "evaluations.view",
     name: "Xem đánh giá",
     module: "Đánh Giá",
     icon: "star",
   },
   {
-    key: "evaluation_create",
+    key: "evaluations.create",
     name: "Tạo đánh giá mới",
     module: "Đánh Giá",
     icon: "star-half-alt",
   },
   {
-    key: "evaluation_edit",
+    key: "evaluations.update",
     name: "Chỉnh sửa đánh giá",
     module: "Đánh Giá",
     icon: "edit",
   },
   {
-    key: "evaluation_approve",
-    name: "Phê duyệt đánh giá",
+    key: "evaluations.delete",
+    name: "Xóa đánh giá",
     module: "Đánh Giá",
-    icon: "check-circle",
+    icon: "trash",
   },
 
   // ===== BÁO CÁO & THỐNG KÊ =====
   {
-    key: "report_view",
+    key: "reports.view",
     name: "Xem báo cáo",
     module: "Báo Cáo & Thống Kê",
     icon: "chart-bar",
   },
   {
-    key: "report_create",
+    key: "reports.generate",
     name: "Tạo báo cáo mới",
     module: "Báo Cáo & Thống Kê",
     icon: "file-alt",
   },
   {
-    key: "report_export",
+    key: "reports.export",
     name: "Xuất báo cáo",
     module: "Báo Cáo & Thống Kê",
     icon: "file-export",
   },
-  {
-    key: "report_print",
-    name: "In báo cáo",
-    module: "Báo Cáo & Thống Kê",
-    icon: "print",
-  },
 
   // ===== QUẢN LÝ NGƯỜI DÙNG =====
   {
-    key: "users_view",
+    key: "users.view",
     name: "Xem danh sách người dùng",
     module: "Quản lý Người Dùng",
     icon: "users-cog",
   },
   {
-    key: "users_create",
+    key: "users.create",
     name: "Tạo tài khoản mới",
     module: "Quản lý Người Dùng",
     icon: "user-plus",
   },
   {
-    key: "users_edit",
+    key: "users.update",
     name: "Chỉnh sửa người dùng",
     module: "Quản lý Người Dùng",
     icon: "user-edit",
   },
   {
-    key: "users_delete",
+    key: "users.delete",
     name: "Xóa người dùng",
     module: "Quản lý Người Dùng",
     icon: "user-times",
   },
   {
-    key: "users_manage",
-    name: "Quản lý người dùng",
-    module: "Quản lý Người Dùng",
-    icon: "shield-alt",
-  },
-  {
-    key: "permissions_manage",
+    key: "users.manage_permissions",
     name: "Quản lý phân quyền",
     module: "Quản lý Người Dùng",
     icon: "key",
@@ -320,28 +336,16 @@ const AVAILABLE_PERMISSIONS = [
 
   // ===== CÀI ĐẶT HỆ THỐNG =====
   {
-    key: "settings_view",
+    key: "settings.view",
     name: "Xem cài đặt",
     module: "Cài đặt Hệ thống",
     icon: "cog",
   },
   {
-    key: "settings_edit",
+    key: "settings.update",
     name: "Thay đổi cài đặt",
     module: "Cài đặt Hệ thống",
     icon: "cogs",
-  },
-  {
-    key: "settings_backup",
-    name: "Sao lưu & khôi phục",
-    module: "Cài đặt Hệ thống",
-    icon: "database",
-  },
-  {
-    key: "settings_audit",
-    name: "Xem nhật ký hoạt động",
-    module: "Cài đặt Hệ thống",
-    icon: "history",
   },
 ];
 
@@ -376,7 +380,7 @@ const PermissionsPage = () => {
       acc[module].push(permission);
       return acc;
     },
-    {}
+    {},
   );
 
   // Count user's permissions per module
@@ -391,6 +395,8 @@ const PermissionsPage = () => {
       "Quản lý Nữ Tu": "users",
       "Hành trình Ơn Gọi": "route",
       "Quản lý Cộng Đoàn": "building",
+      "Bổ nhiệm & Phân công": "exchange-alt",
+      "Quản lý Đi vắng": "plane-departure",
       "Học Vấn": "graduation-cap",
       "Sứ Vụ": "briefcase",
       "Sức Khỏe": "heartbeat",
@@ -408,6 +414,8 @@ const PermissionsPage = () => {
       "Quản lý Nữ Tu": "primary",
       "Hành trình Ơn Gọi": "success",
       "Quản lý Cộng Đoàn": "warning",
+      "Bổ nhiệm & Phân công": "primary",
+      "Quản lý Đi vắng": "warning",
       "Học Vấn": "secondary",
       "Sứ Vụ": "dark",
       "Sức Khỏe": "danger",
@@ -478,7 +486,7 @@ const PermissionsPage = () => {
                 <div className="d-flex align-items-center">
                   <i
                     className={`fas fa-${getModuleIcon(
-                      module
+                      module,
                     )} me-2 text-${getModuleBadge(module)}`}
                   ></i>
                   <h6 className="mb-0">{module}</h6>
@@ -487,8 +495,8 @@ const PermissionsPage = () => {
                       getModulePermissionCount(module) === permissions.length
                         ? "success"
                         : getModulePermissionCount(module) > 0
-                        ? "warning"
-                        : "secondary"
+                          ? "warning"
+                          : "secondary"
                     }
                     className="ms-auto"
                   >

@@ -17,17 +17,17 @@ router.use(attachDataScope);
 router.get(
   "/",
   checkPermission("communities.view"),
-  communityController.getAllCommunities
+  communityController.getAllCommunities,
 );
 router.get(
   "/:id",
   checkPermission("communities.view"),
-  communityController.getCommunityById
+  communityController.getCommunityById,
 );
 router.get(
   "/:id/members",
   checkPermission("communities.view"),
-  communityController.getCommunityMembers
+  communityController.getCommunityMembers,
 );
 
 router.post(
@@ -35,7 +35,7 @@ router.post(
   checkPermission("communities.create"),
   validateCommunityCreate,
   handleValidationErrors,
-  communityController.createCommunity
+  communityController.createCommunity,
 );
 
 router.put(
@@ -43,13 +43,13 @@ router.put(
   checkPermission("communities.update"),
   validateCommunityUpdate,
   handleValidationErrors,
-  communityController.updateCommunity
+  communityController.updateCommunity,
 );
 
 router.delete(
   "/:id",
   checkPermission("communities.delete"),
-  communityController.deleteCommunity
+  communityController.deleteCommunity,
 );
 
 // Member management routes
@@ -57,20 +57,39 @@ router.post(
   "/:id/members",
   checkPermission("communities.update"),
   uploadDecision,
-  communityController.addMember
+  communityController.addMember,
 );
 
 router.put(
   "/:id/members/:memberId",
   checkPermission("communities.update"),
   uploadDecision,
-  communityController.updateMemberRole
+  communityController.updateMemberRole,
 );
 
 router.delete(
   "/:id/members/:memberId",
   checkPermission("communities.update"),
-  communityController.removeMember
+  communityController.removeMember,
+);
+
+// Events
+router.get(
+  "/:id/events",
+  checkPermission("communities.view"),
+  communityController.getCommunityEvents,
+);
+
+router.post(
+  "/:id/events",
+  checkPermission("communities.update"),
+  communityController.addCommunityEvent,
+);
+
+router.delete(
+  "/:id/events/:eventId",
+  checkPermission("communities.update"),
+  communityController.deleteCommunityEvent,
 );
 
 module.exports = router;

@@ -17,6 +17,11 @@ const ensureAdmin = (req, res) => {
     return false;
   }
 
+  // Admin bypass - admins can access all permission management
+  if (req.user.is_admin === 1 || req.user.role === "admin" || req.user.role === "superior_general") {
+    return true;
+  }
+
   // Permission-based check - user must have users.manage_permissions permission
   if (
     !req.user.permissions ||

@@ -113,12 +113,12 @@ class BaseModel {
     }
 
     if (this.softDeleteColumn) {
-      const sql = `UPDATE ${this.tableName} SET ${this.softDeleteColumn} = ? WHERE ${this.primaryKey} = ? AND ${this.softDeleteColumn} IS NULL`;
+      const sql = `UPDATE ${this.tableName} SET ${this.softDeleteColumn} = ? WHERE ${this.primaryKey} = ? AND ${this.softDeleteColumn} IS NULL RETURNING ${this.primaryKey}`;
       const rows = await this.executeQuery(sql, [new Date(), id]);
       return rows.length > 0;
     }
 
-    const sql = `DELETE FROM ${this.tableName} WHERE ${this.primaryKey} = ?`;
+    const sql = `DELETE FROM ${this.tableName} WHERE ${this.primaryKey} = ? RETURNING ${this.primaryKey}`;
     const rows = await this.executeQuery(sql, [id]);
     return rows.length > 0;
   }

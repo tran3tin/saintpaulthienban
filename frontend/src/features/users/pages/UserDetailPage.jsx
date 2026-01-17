@@ -37,9 +37,11 @@ const UserDetailPage = () => {
   const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
-    fetchUserDetail();
-    fetchUserPermissions();
-    fetchUserCommunities();
+    if (id && id !== "undefined" && id !== "null") {
+      fetchUserDetail();
+      fetchUserPermissions();
+      fetchUserCommunities();
+    }
   }, [id]);
 
   const fetchUserDetail = async () => {

@@ -16,24 +16,24 @@ router.use(attachDataScope);
 // List all education records
 router.get(
   "/",
-  checkPermission("education.view_list"),
-  educationController.getAllEducation
+  checkPermission("education.view"),
+  educationController.getAllEducation,
 );
 
 router.get(
   "/sister/:sisterId",
-  checkPermission("education.view_list"),
-  educationController.getEducationBySister
+  checkPermission("education.view"),
+  educationController.getEducationBySister,
 );
 router.get(
   "/statistics/level",
-  checkPermission("education.view_list"),
-  educationController.getStatisticsByLevel
+  checkPermission("education.view"),
+  educationController.getStatisticsByLevel,
 );
 router.get(
   "/:id",
-  checkPermission("education.view_detail"),
-  educationController.getEducationById
+  checkPermission("education.view"),
+  educationController.getEducationById,
 );
 
 router.post(
@@ -41,26 +41,26 @@ router.post(
   checkPermission("education.create"),
   validateEducationCreate,
   handleValidationErrors,
-  educationController.addEducation
+  educationController.addEducation,
 );
 
 router.put(
   "/:id",
-  checkPermission("education.edit"),
-  educationController.updateEducation
+  checkPermission("education.update"),
+  educationController.updateEducation,
 );
 
 router.delete(
   "/:id",
   checkPermission("education.delete"),
-  educationController.deleteEducation
+  educationController.deleteEducation,
 );
 
 router.post(
   "/:id/certificate",
   checkPermission("education.create"),
   uploadDocument,
-  educationController.uploadCertificate
+  educationController.uploadCertificate,
 );
 
 module.exports = router;

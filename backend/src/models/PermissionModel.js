@@ -4,7 +4,7 @@ const BaseModel = require("./BaseModel");
 
 class PermissionModel extends BaseModel {
   constructor() {
-    super("permissions");
+    super({ tableName: "permissions" });
   }
 
   /**
@@ -12,7 +12,7 @@ class PermissionModel extends BaseModel {
    */
   async getAllGroupedByModule() {
     const query = `
-      SELECT * FROM ${this.table}
+      SELECT * FROM ${this.tableName}
       ORDER BY module, name
     `;
     const permissions = await this.executeQuery(query);
@@ -42,7 +42,7 @@ class PermissionModel extends BaseModel {
   async getByCodes(codes) {
     if (!codes || codes.length === 0) return [];
     const placeholders = codes.map(() => "?").join(",");
-    const query = `SELECT * FROM ${this.table} WHERE code IN (${placeholders})`;
+    const query = `SELECT * FROM ${this.tableName} WHERE code IN (${placeholders})`;
     return this.executeQuery(query, codes);
   }
 
@@ -50,7 +50,8 @@ class PermissionModel extends BaseModel {
    * Get permissions by module
    */
   async getByModule(module) {
-    return this.find({ module });
+    const query = `SELECT * FROM ${this.tableName} WHERE module = $1 ORDER BY name`;
+    return this.executeQuery(query, [module]);
   }
 }
 

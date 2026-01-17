@@ -15,48 +15,48 @@ router.use(attachDataScope);
 // Get all journeys with pagination
 router.get(
   "/",
-  checkPermission("journey.view_list"),
-  vocationJourneyController.getAllJourneys
+  checkPermission("journey.view"),
+  vocationJourneyController.getAllJourneys,
 );
 
 // Statistics - must be before /:id
 router.get(
   "/statistics",
-  checkPermission("journey.view_list"),
-  vocationJourneyController.getStatisticsByStage
+  checkPermission("journey.view"),
+  vocationJourneyController.getStatisticsByStage,
 );
 
 // Get journeys by sister - must be before /:id
 router.get(
   "/sister/:sisterId",
-  checkPermission("journey.view_list"),
-  vocationJourneyController.getJourneyBySister
+  checkPermission("journey.view"),
+  vocationJourneyController.getJourneyBySister,
 );
 
 // Get journey by ID - must be after specific routes
 router.get(
   "/:id",
-  checkPermission("journey.view_detail"),
-  vocationJourneyController.getJourneyById
+  checkPermission("journey.view"),
+  vocationJourneyController.getJourneyById,
 );
 
 // Create new journey with sister_id in body
 router.post(
   "/",
   checkPermission("journey.create"),
-  vocationJourneyController.createJourney
+  vocationJourneyController.createJourney,
 );
 
 router.put(
   "/:stageId",
-  checkPermission("journey.edit"),
-  vocationJourneyController.updateJourneyStage
+  checkPermission("journey.update"),
+  vocationJourneyController.updateJourneyStage,
 );
 
 router.delete(
   "/:stageId",
   checkPermission("journey.delete"),
-  vocationJourneyController.deleteJourneyStage
+  vocationJourneyController.deleteJourneyStage,
 );
 
 module.exports = router;

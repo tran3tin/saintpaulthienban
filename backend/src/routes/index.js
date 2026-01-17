@@ -19,6 +19,7 @@ const postRoutes = require("./postRoutes");
 const dashboardRoutes = require("./dashboardRoutes");
 const settingRoutes = require("./settingRoutes");
 const notificationRoutes = require("./notificationRoutes");
+const permissionRoutes = require("./permissionRoutes");
 
 module.exports = (app) => {
   app.use("/api/auth", authRoutes);
@@ -42,6 +43,7 @@ module.exports = (app) => {
   app.use("/api/dashboard", dashboardRoutes);
   app.use("/api/settings", settingRoutes);
   app.use("/api/notifications", notificationRoutes);
+  app.use("/api/permissions", permissionRoutes);
 
   app.get("/api/health", (req, res) => {
     res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });

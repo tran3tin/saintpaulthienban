@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { uploadDocuments } = require("../middlewares/upload");
 const { authenticateToken } = require("../middlewares/auth");
-const { uploadToFirebase } = require("../controllers/uploadController");
+const { processFileUpload } = require("../controllers/uploadController");
 
 // Upload multiple documents
 router.post(
@@ -23,12 +23,12 @@ router.post(
         console.log(
           `📄 File ${i + 1}: ${file.originalname} (${file.mimetype}, ${
             file.size
-          } bytes)`
+          } bytes)`,
         );
       });
 
-      // Upload tất cả files lên Firebase
-      const uploadPromises = req.files.map((file) => uploadToFirebase(file));
+      // Upload tất cả files (Firebase -> Local Fallback)
+      const uploadPromises = req.files.map((file) => processFileUpload(file));
       const results = await Promise.all(uploadPromises);
 
       const uploadedFiles = results.map((result, index) => ({
@@ -54,7 +54,7 @@ router.post(
         error: error.message,
       });
     }
-  }
+  },
 );
 
 module.exports = router;

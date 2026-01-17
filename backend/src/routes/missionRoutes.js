@@ -10,46 +10,46 @@ router.use(attachDataScope);
 
 router.get(
   "/",
-  checkPermission("missions.view_list"),
-  missionController.getAllMissions
+  checkPermission("missions.view"),
+  missionController.getAllMissions,
 );
 router.get(
   "/sister/:sisterId",
-  checkPermission("missions.view_list"),
-  missionController.getMissionsBySister
+  checkPermission("missions.view"),
+  missionController.getMissionsBySister,
 );
 router.get(
   "/field/:field",
-  checkPermission("missions.view_list"),
-  missionController.getSistersByMissionField
+  checkPermission("missions.view"),
+  missionController.getSistersByMissionField,
 );
 router.get(
   "/:id",
-  checkPermission("missions.view_detail"),
-  missionController.getMissionById
+  checkPermission("missions.view"),
+  missionController.getMissionById,
 );
 
 router.post(
   "/",
   checkPermission("missions.create"),
-  missionController.createMission
+  missionController.createMission,
 );
 
 router.put(
   "/:id",
-  checkPermission("missions.edit"),
-  missionController.updateMission
+  checkPermission("missions.update"),
+  missionController.updateMission,
 );
 router.delete(
   "/:id",
   checkPermission("missions.delete"),
-  missionController.deleteMission
+  missionController.deleteMission,
 );
 
 router.post(
   "/:id/end",
   checkPermission("missions.edit"),
-  missionController.endMission
+  missionController.endMission,
 );
 
 module.exports = router;

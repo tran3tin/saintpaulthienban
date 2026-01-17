@@ -1,4 +1,5 @@
 const CommunityModel = require("../models/CommunityModel");
+const CommunityEventModel = require("../models/CommunityEventModel");
 const { uploadToFirebase } = require("./uploadController");
 const CommunityAssignmentModel = require("../models/CommunityAssignmentModel");
 const AuditLogModel = require("../models/AuditLogModel");
@@ -60,7 +61,7 @@ const generateCommunityCode = async () => {
   try {
     // Find the highest existing CD number
     const rows = await CommunityModel.executeQuery(
-      "SELECT code FROM communities WHERE code REGEXP '^CD[0-9]+$' ORDER BY CAST(SUBSTRING(code, 3) AS UNSIGNED) DESC LIMIT 1"
+      "SELECT code FROM communities WHERE code REGEXP '^CD[0-9]+$' ORDER BY CAST(SUBSTRING(code, 3) AS UNSIGNED) DESC LIMIT 1",
     );
 
     let nextNum = 1;
@@ -122,7 +123,7 @@ const getAllCommunities = async (req, res) => {
       {
         communityIdField: "c.id",
         useJoin: false,
-      }
+      },
     );
 
     if (scopeWhere) {
@@ -136,7 +137,7 @@ const getAllCommunities = async (req, res) => {
 
     const totalRows = await CommunityModel.executeQuery(
       `SELECT COUNT(*) AS total FROM communities c ${whereClause}`,
-      params
+      params,
     );
     const total = totalRows[0] ? totalRows[0].total : 0;
 
@@ -150,7 +151,7 @@ const getAllCommunities = async (req, res) => {
        ${whereClause} 
        ORDER BY c.created_at DESC 
        LIMIT ? OFFSET ?`,
-      [...params, limit, offset]
+      [...params, limit, offset],
     );
 
     return res.status(200).json({
@@ -181,7 +182,7 @@ const getCommunityById = async (req, res) => {
       req.userScope,
       id,
       "communities",
-      async () => id
+      async () => id,
     );
 
     if (!hasAccess) {
@@ -248,7 +249,7 @@ const updateCommunity = async (req, res) => {
       req.userScope,
       id,
       "communities",
-      async () => id
+      async () => id,
     );
 
     if (!hasAccess) {
@@ -296,7 +297,7 @@ const deleteCommunity = async (req, res) => {
       req.userScope,
       id,
       "communities",
-      async () => id
+      async () => id,
     );
 
     if (!hasAccess) {
@@ -309,7 +310,7 @@ const deleteCommunity = async (req, res) => {
     // Check member count from vocation_journey
     const memberCountRows = await CommunityModel.executeQuery(
       `SELECT COUNT(DISTINCT sister_id) AS total FROM vocation_journey WHERE community_id = ? AND (end_date IS NULL OR end_date >= CURRENT_DATE)`,
-      [id]
+      [id],
     );
     const memberCount = memberCountRows[0] ? memberCountRows[0].total : 0;
     if (memberCount > 0) {
@@ -348,7 +349,7 @@ const getCommunityMembers = async (req, res) => {
       req.userScope,
       id,
       "communities",
-      async () => id
+      async () => id,
     );
 
     if (!hasAccess) {
@@ -393,7 +394,7 @@ const addMember = async (req, res) => {
       req.userScope,
       id,
       "communities",
-      async () => id
+      async () => id,
     );
 
     if (!hasAccess) {
@@ -462,7 +463,7 @@ const removeMember = async (req, res) => {
       req.userScope,
       id,
       "communities",
-      async () => id
+      async () => id,
     );
 
     if (!hasAccess) {
@@ -512,7 +513,7 @@ const updateMemberRole = async (req, res) => {
       req.userScope,
       id,
       "communities",
-      async () => id
+      async () => id,
     );
 
     if (!hasAccess) {
@@ -549,7 +550,7 @@ const updateMemberRole = async (req, res) => {
 
     const updatedAssignment = await CommunityAssignmentModel.update(
       memberId,
-      updateData
+      updateData,
     );
 
     await logAudit(req, "UPDATE_MEMBER", id, assignment, updatedAssignment);
@@ -566,6 +567,464 @@ const updateMemberRole = async (req, res) => {
   }
 };
 
+const getCommunityEvents = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check scope access
+    const hasAccess = await checkScopeAccess(
+      req.userScope,
+      id,
+      "communities",
+      async () => id,
+    );
+
+    if (!hasAccess) {
+      return res.status(403).json({
+        success: false,
+        message: "You don't have permission to view events in this community",
+      });
+    }
+
+    // 1. Fetch manual events
+    const manualEventModel = new CommunityEventModel();
+    const manualEvents = await manualEventModel.executeQuery(
+      "SELECT * FROM community_events WHERE community_id = ? ORDER BY event_date DESC",
+      [id],
+    );
+
+    // 2. Fetch assignments for "auto" events
+    const assignments = await CommunityAssignmentModel.executeQuery(
+      `SELECT ca.*, s.birth_name, s.saint_name 
+       FROM community_assignments ca
+       JOIN sisters s ON ca.sister_id = s.id
+       WHERE ca.community_id = ?`,
+      [id],
+    );
+
+    // 2.1 Fetch Vocation Journey assignments (Sisters assigned via Journey)
+    const journeyAssignments = await CommunityModel.executeQuery(
+      `SELECT vj.*, s.birth_name, s.saint_name 
+       FROM vocation_journey vj
+       JOIN sisters s ON vj.sister_id = s.id
+       WHERE vj.community_id = ?`,
+      [id],
+    );
+
+    const autoEvents = [];
+    // Combine sister IDs from assignments AND vocation journeys
+    const assignedSisterIds = assignments.map((a) => a.sister_id);
+    const journeySisterIds = journeyAssignments.map((a) => a.sister_id);
+    const sisterIds = [...new Set([...assignedSisterIds, ...journeySisterIds])];
+
+    // Helper to check if a date falls within any assignment period of the sister TO THIS COMMUNITY
+    const isDateInCommunity = (sisterId, dateStr) => {
+      if (!dateStr) return false;
+      const date = new Date(dateStr);
+
+      // Check community_assignments
+      const sisterAssignments = assignments.filter(
+        (a) => a.sister_id === sisterId,
+      );
+      const inAssignment = sisterAssignments.some((a) => {
+        const start = new Date(a.start_date);
+        const end = a.end_date ? new Date(a.end_date) : new Date("9999-12-31");
+        return date >= start && date <= end;
+      });
+      if (inAssignment) return true;
+
+      // Check vocation_journey assignments
+      const sisterJourneys = journeyAssignments.filter(
+        (a) => a.sister_id === sisterId,
+      );
+      const inJourney = sisterJourneys.some((a) => {
+        const start = new Date(a.start_date);
+        const end = a.end_date ? new Date(a.end_date) : new Date("9999-12-31");
+        return date >= start && date <= end;
+      });
+      return inJourney;
+    };
+
+    if (sisterIds.length > 0) {
+      // Prepare IDs for SQL IN clause
+      const idPlaceholders = sisterIds.map(() => "?").join(",");
+
+      // 2.2 Fetch Education
+      const educations = await CommunityModel.executeQuery(
+        `SELECT e.*, s.birth_name, s.saint_name 
+         FROM education e
+         JOIN sisters s ON e.sister_id = s.id
+         WHERE e.sister_id IN (${idPlaceholders})`,
+        sisterIds,
+      );
+
+      educations.forEach((edu) => {
+        const name = `${edu.saint_name ? edu.saint_name + " " : ""}${
+          edu.birth_name
+        }`;
+        // Education Start
+        if (
+          edu.start_date &&
+          isDateInCommunity(edu.sister_id, edu.start_date)
+        ) {
+          autoEvents.push({
+            id: `edu-start-${edu.id}`,
+            community_id: parseInt(id),
+            title: `Học vấn - Bắt đầu: ${name}`,
+            description: `${edu.level}${
+              edu.major ? " - " + edu.major : ""
+            } tại ${edu.institution || "CS Đào tạo"}`,
+            event_date: edu.start_date,
+            type: "auto",
+            category: "education",
+          });
+        }
+        // Education End
+        if (edu.end_date && isDateInCommunity(edu.sister_id, edu.end_date)) {
+          autoEvents.push({
+            id: `edu-end-${edu.id}`,
+            community_id: parseInt(id),
+            title: `Học vấn - Hoàn thành: ${name}`,
+            description: `${edu.level}${
+              edu.major ? " - " + edu.major : ""
+            } tại ${edu.institution || "CS Đào tạo"}`,
+            event_date: edu.end_date,
+            type: "auto",
+            category: "education",
+          });
+        }
+      });
+
+      // 2.3 Fetch Missions
+      const missions = await CommunityModel.executeQuery(
+        `SELECT m.*, s.birth_name, s.saint_name 
+         FROM missions m
+         JOIN sisters s ON m.sister_id = s.id
+         WHERE m.sister_id IN (${idPlaceholders})`,
+        sisterIds,
+      );
+
+      missions.forEach((miss) => {
+        const name = `${miss.saint_name ? miss.saint_name + " " : ""}${
+          miss.birth_name
+        }`;
+        const fieldMap = {
+          education: "Giáo dục",
+          pastoral: "Mục vụ",
+          publishing: "Xuất bản",
+          media: "Truyền thông",
+          healthcare: "Y tế",
+          social: "Xã hội",
+        };
+        const fieldName = fieldMap[miss.field] || miss.field;
+
+        // Mission Start
+        if (
+          miss.start_date &&
+          isDateInCommunity(miss.sister_id, miss.start_date)
+        ) {
+          autoEvents.push({
+            id: `miss-start-${miss.id}`,
+            community_id: parseInt(id),
+            title: `Sứ vụ - Bắt đầu: ${name}`,
+            description: `${fieldName}. Vai trò: ${
+              miss.specific_role || "Thành viên"
+            }`,
+            event_date: miss.start_date,
+            type: "auto",
+            category: "mission",
+          });
+        }
+        // Mission End
+        if (miss.end_date && isDateInCommunity(miss.sister_id, miss.end_date)) {
+          autoEvents.push({
+            id: `miss-end-${miss.id}`,
+            community_id: parseInt(id),
+            title: `Sứ vụ - Kết thúc: ${name}`,
+            description: `${fieldName}. Vai trò: ${
+              miss.specific_role || "Thành viên"
+            }`,
+            event_date: miss.end_date,
+            type: "auto",
+            category: "mission",
+          });
+        }
+      });
+
+      // 2.4 Fetch Health Records
+      const healths = await CommunityModel.executeQuery(
+        `SELECT h.*, s.birth_name, s.saint_name 
+         FROM health_records h
+         JOIN sisters s ON h.sister_id = s.id
+         WHERE h.sister_id IN (${idPlaceholders})`,
+        sisterIds,
+      );
+
+      healths.forEach((hlth) => {
+        const name = `${hlth.saint_name ? hlth.saint_name + " " : ""}${
+          hlth.birth_name
+        }`;
+        if (
+          hlth.checkup_date &&
+          isDateInCommunity(hlth.sister_id, hlth.checkup_date)
+        ) {
+          autoEvents.push({
+            id: `health-${hlth.id}`,
+            community_id: parseInt(id),
+            title: `Sức khỏe - Khám bệnh: ${name}`,
+            description: `Tình trạng: ${
+              hlth.general_health === "good"
+                ? "Tốt"
+                : hlth.general_health === "average"
+                  ? "Trung bình"
+                  : "Yếu"
+            }. ${hlth.diagnosis ? "Chẩn đoán: " + hlth.diagnosis : ""}`,
+            event_date: hlth.checkup_date,
+            type: "auto",
+            category: "health",
+          });
+        }
+      });
+
+      // 2.5 Fetch Training Courses
+      const courses = await CommunityModel.executeQuery(
+        `SELECT t.*, s.birth_name, s.saint_name 
+         FROM training_courses t
+         JOIN sisters s ON t.sister_id = s.id
+         WHERE t.sister_id IN (${idPlaceholders})`,
+        sisterIds,
+      );
+
+      courses.forEach((course) => {
+        const name = `${course.saint_name ? course.saint_name + " " : ""}${
+          course.birth_name
+        }`;
+        if (
+          course.start_date &&
+          isDateInCommunity(course.sister_id, course.start_date)
+        ) {
+          autoEvents.push({
+            id: `course-${course.id}`,
+            community_id: parseInt(id),
+            title: `Đào tạo - Khóa học: ${name}`,
+            description: `${course.course_name}. ${
+              course.organizer ? "TC: " + course.organizer : ""
+            }`,
+            event_date: course.start_date,
+            type: "auto",
+            category: "education", // Group with education
+          });
+        }
+      });
+
+      // 2.6 Fetch Vocation Journey (Stages/Vows)
+      const stages = await CommunityModel.executeQuery(
+        `SELECT v.*, s.birth_name, s.saint_name 
+         FROM vocation_journey v
+         JOIN sisters s ON v.sister_id = s.id
+         WHERE v.sister_id IN (${idPlaceholders})`,
+        sisterIds,
+      );
+
+      const stageMap = {
+        inquiry: "Tìm hiểu",
+        postulant: "Thỉnh sinh",
+        aspirant: "Thanh tuyển",
+        novice: "Tập viện",
+        temporary_vows: "Khấn tạm",
+        perpetual_vows: "Khấn trọn",
+        left: "Hồi tục",
+      };
+
+      stages.forEach((stage) => {
+        const name = `${stage.saint_name ? stage.saint_name + " " : ""}${
+          stage.birth_name
+        }`;
+
+        // IMPORTANT: If this stage IS the assignment to this community, mark it as proper Arrival/Departure
+        const isAssignmentToThisCommunity = stage.community_id === parseInt(id);
+
+        if (
+          stage.start_date &&
+          (isAssignmentToThisCommunity ||
+            isDateInCommunity(stage.sister_id, stage.start_date))
+        ) {
+          autoEvents.push({
+            id: `stage-${stage.id}`,
+            community_id: parseInt(id),
+            title: `${isAssignmentToThisCommunity ? "Thuyên chuyển đến - " : "Ơn gọi - "}${stageMap[stage.stage] || stage.stage}: ${name}`,
+            description: `Bắt đầu giai đoạn ${
+              stageMap[stage.stage] || stage.stage
+            }${isAssignmentToThisCommunity ? " tại cộng đoàn" : ""}`,
+            event_date: stage.start_date,
+            type: "auto",
+            category: isAssignmentToThisCommunity ? "arrival" : "mission",
+          });
+        }
+        // Handle End Date (Departure or just end of stage)
+        if (
+          stage.end_date &&
+          (isAssignmentToThisCommunity ||
+            isDateInCommunity(stage.sister_id, stage.end_date))
+        ) {
+          autoEvents.push({
+            id: `stage-end-${stage.id}`,
+            community_id: parseInt(id),
+            title: `${isAssignmentToThisCommunity ? "Thuyên chuyển đi - " : "Kết thúc - "}${stageMap[stage.stage] || stage.stage}: ${name}`,
+            description: `Kết thúc giai đoạn ${
+              stageMap[stage.stage] || stage.stage
+            }`,
+            event_date: stage.end_date,
+            type: "auto",
+            category: isAssignmentToThisCommunity ? "departure" : "mission",
+          });
+        }
+      });
+    }
+
+    assignments.forEach((assign) => {
+      const name = `${
+        assign.saint_name ? assign.saint_name + " " : ""
+      }${assign.birth_name}`;
+
+      // Arrival event
+      if (assign.start_date) {
+        autoEvents.push({
+          id: `arrival-${assign.id}`,
+          community_id: assign.community_id,
+          title: `Thuyên chuyển đến: ${name}`,
+          description: `Nữ tu ${name} được bài sai đến cộng đoàn.${
+            assign.role ? " Vai trò: " + assign.role : ""
+          }`,
+          event_date: assign.start_date,
+          type: "auto",
+          category: "arrival",
+        });
+      }
+
+      // Departure event
+      if (assign.end_date) {
+        autoEvents.push({
+          id: `departure-${assign.id}`,
+          community_id: assign.community_id,
+          title: `Thuyên chuyển đi: ${name}`,
+          description: `Nữ tu ${name} kết thúc bài sai tại cộng đoàn.`,
+          event_date: assign.end_date,
+          type: "auto",
+          category: "departure",
+        });
+      }
+    });
+
+    // Merge and sort
+    const allEvents = [
+      ...manualEvents.map((e) => ({ ...e, type: "manual" })),
+      ...autoEvents,
+    ];
+    allEvents.sort((a, b) => new Date(b.event_date) - new Date(a.event_date));
+
+    return res.json({ success: true, data: allEvents });
+  } catch (error) {
+    console.error("getCommunityEvents error:", error.message);
+    return res.status(500).json({
+      message: "Failed to fetch community events",
+      error: error.message,
+    });
+  }
+};
+
+const addCommunityEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, description, event_date } = req.body;
+
+    // Check scope access
+    const hasAccess = await checkScopeAccess(
+      req.userScope,
+      id,
+      "communities",
+      async () => id,
+    );
+
+    if (!hasAccess) {
+      return res.status(403).json({
+        success: false,
+        message: "You don't have permission to add events to this community",
+      });
+    }
+
+    if (!title || !event_date) {
+      return res.status(400).json({
+        success: false,
+        message: "Title and event date are required",
+      });
+    }
+
+    const eventModel = new CommunityEventModel();
+    const newEvent = await eventModel.create({
+      community_id: id,
+      title,
+      description,
+      event_date,
+    });
+
+    // Log audit
+    await logAudit(req, "ADD_EVENT", id, null, { id: newEvent.id, title });
+
+    return res.json({ success: true, data: newEvent });
+  } catch (error) {
+    console.error("addCommunityEvent error:", error.message);
+    return res.status(500).json({ message: "Failed to add community event" });
+  }
+};
+
+const deleteCommunityEvent = async (req, res) => {
+  try {
+    const { id, eventId } = req.params;
+
+    // Check scope access
+    const hasAccess = await checkScopeAccess(
+      req.userScope,
+      id,
+      "communities",
+      async () => id,
+    );
+
+    if (!hasAccess) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "You don't have permission to delete events from this community",
+      });
+    }
+
+    const eventModel = new CommunityEventModel();
+    const event = await eventModel.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Ensure event belongs to community
+    if (String(event.community_id) !== String(id)) {
+      return res
+        .status(400)
+        .json({ message: "Event does not belong to this community" });
+    }
+
+    await eventModel.delete(eventId);
+
+    // Log audit
+    await logAudit(req, "DELETE_EVENT", id, event, null);
+
+    return res.json({ success: true, message: "Event deleted successfully" });
+  } catch (error) {
+    console.error("deleteCommunityEvent error:", error.message);
+    return res
+      .status(500)
+      .json({ message: "Failed to delete community event" });
+  }
+};
+
 module.exports = {
   getAllCommunities,
   getCommunityById,
@@ -576,4 +1035,7 @@ module.exports = {
   addMember,
   removeMember,
   updateMemberRole,
+  getCommunityEvents,
+  addCommunityEvent,
+  deleteCommunityEvent,
 };

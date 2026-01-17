@@ -167,6 +167,13 @@ const VocationJourneyFormPage = () => {
               : "",
           // Load documents array (already parsed by backend)
           documents: response.data.documents || [],
+          // Ensure controlled components don't get null values
+          notes: response.data.notes || "",
+          location: response.data.location || "",
+          superior: response.data.superior || "",
+          formation_director: response.data.formation_director || "",
+          community_id: response.data.community_id || "",
+          supervisor_id: response.data.supervisor_id || "",
         };
         console.log("Setting values:", journeyData);
         updateValues(journeyData);
@@ -289,7 +296,7 @@ const VocationJourneyFormPage = () => {
         toast.success(
           isEditMode
             ? "Cập nhật hành trình thành công!"
-            : "Thêm hành trình mới thành công!"
+            : "Thêm hành trình mới thành công!",
         );
         navigate(`/hanh-trinh/${response.data?.id || id}`);
       } else {
@@ -297,7 +304,7 @@ const VocationJourneyFormPage = () => {
           response.error ||
             (isEditMode
               ? "Không thể cập nhật hành trình"
-              : "Không thể thêm hành trình")
+              : "Không thể thêm hành trình"),
         );
         setError(response.error);
       }
@@ -313,7 +320,7 @@ const VocationJourneyFormPage = () => {
   const handleCancel = () => {
     if (
       window.confirm(
-        "Bạn có chắc chắn muốn hủy? Các thay đổi sẽ không được lưu."
+        "Bạn có chắc chắn muốn hủy? Các thay đổi sẽ không được lưu.",
       )
     ) {
       navigate(isEditMode ? `/hanh-trinh/${id}` : "/hanh-trinh");
@@ -514,7 +521,7 @@ const VocationJourneyFormPage = () => {
                           size="sm"
                           onClick={() => {
                             const selectedStage = stages.find(
-                              (s) => s.code === values.stage
+                              (s) => s.code === values.stage,
                             );
                             if (selectedStage) {
                               handleDeleteStage(selectedStage.id);

@@ -28,6 +28,7 @@ import {
 } from "@react-pdf/renderer";
 import { communityService } from "@services";
 import { formatDate } from "@utils";
+import DatePicker from "@components/forms/DatePicker";
 import LoadingSpinner from "@components/common/Loading/LoadingSpinner";
 import Breadcrumb from "@components/common/Breadcrumb";
 import "./CommunityDetailPage.css";
@@ -210,6 +211,17 @@ const CommunityDetailPage = () => {
   const [community, setCommunity] = useState(null);
   const [members, setMembers] = useState([]);
 
+  // Event states
+  const [events, setEvents] = useState([]);
+  const [showEventModal, setShowEventModal] = useState(false);
+  const [newEvent, setNewEvent] = useState({
+    title: "",
+    description: "",
+    event_date: new Date().toISOString().split("T")[0],
+  });
+  const [addingEvent, setAddingEvent] = useState(false);
+  const [eventSearch, setEventSearch] = useState("");
+
   // History states
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [historyContent, setHistoryContent] = useState("");
@@ -261,7 +273,19 @@ const CommunityDetailPage = () => {
   useEffect(() => {
     fetchCommunityDetail();
     fetchMembers();
+    fetchEvents();
   }, [id]);
+
+  const fetchEvents = async () => {
+    try {
+      const response = await communityService.getEvents(id);
+      if (response && response.success) {
+        setEvents(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching events:", error);
+    }
+  };
 
   useEffect(() => {
     // Load history content when community data is loaded
@@ -318,6 +342,134 @@ const CommunityDetailPage = () => {
     navigate(`/cong-doan/${id}/assign`);
   };
 
+  // Event handlers
+  const handleOpenEventModal = () => {
+    setNewEvent({
+      title: "",
+      description: "",
+      event_date: new Date().toISOString().split("T")[0],
+    });
+    setShowEventModal(true);
+  };
+
+  const handleCloseEventModal = () => {
+    setShowEventModal(false);
+  };
+
+  const handleAddEvent = async () => {
+    if (!newEvent.title || !newEvent.event_date) {
+      alert("Vui lòng nhập tên sự kiện và ngày diễn ra");
+      return;
+    }
+
+    try {
+      setAddingEvent(true);
+      const response = await communityService.addEvent(id, newEvent);
+      if (response && response.success) {
+        await fetchEvents();
+        setShowEventModal(false);
+      } else {
+        alert("Không thể thêm sự kiện");
+      }
+    } catch (error) {
+      console.error("Error adding event:", error);
+      alert("Lỗi khi thêm sự kiện");
+    } finally {
+      setAddingEvent(false);
+    }
+  };
+
+  const [viewEvent, setViewEvent] = useState(null);
+  const [showViewEventModal, setShowViewEventModal] = useState(false);
+
+  const handleViewEvent = (event) => {
+    // Nếu là sự kiện thủ công (manual), hiển thị modal xem chi tiết
+    if (event.type === "manual") {
+      setViewEvent(event);
+      setShowViewEventModal(true);
+      return;
+    }
+
+    // Nếu là sự kiện tự động (auto), điều hướng đến trang chi tiết tương ứng
+    if (event.type === "auto" && event.id) {
+      const idParts = event.id.toString().split("-");
+      // Lấy ID thực thể (phần tử cuối cùng)
+      const entityId = idParts[idParts.length - 1];
+
+      // Kiểm tra loại sự kiện dựa trên prefix
+      // Assignments (arrival/departure)
+      if (
+        event.id.startsWith("arrival-") ||
+        event.id.startsWith("departure-")
+      ) {
+        navigate(`/cong-doan/assignments/${entityId}`);
+        return;
+      }
+
+      // Sứ vụ (mission)
+      if (
+        event.id.startsWith("miss-start-") ||
+        event.id.startsWith("miss-end-")
+      ) {
+        navigate(`/su-vu/${entityId}`);
+        return;
+      }
+
+      // Học vấn (education)
+      if (
+        event.id.startsWith("edu-start-") ||
+        event.id.startsWith("edu-end-")
+      ) {
+        navigate(`/hoc-van/${entityId}`);
+        return;
+      }
+
+      // Sức khỏe (health)
+      if (event.id.startsWith("health-")) {
+        navigate(`/suc-khoe/${entityId}`);
+        return;
+      }
+
+      // Giai đoạn ơn gọi (stage)
+      if (event.id.startsWith("stage-") || event.id.startsWith("stage-end-")) {
+        navigate(`/hanh-trinh/${entityId}`);
+        return;
+      }
+
+      // Khóa thường huấn (course) - Nếu chưa có trang chi tiết, có thể hiển thị modal hoặc điều hướng về danh sách
+      // Hiện tại fallback về hiển thị modal vì chưa có /training-courses/:id
+    }
+
+    // Fallback cho các trường hợp còn lại
+    setViewEvent(event);
+    setShowViewEventModal(true);
+  };
+
+  const handleCloseViewEventModal = () => {
+    setShowViewEventModal(false);
+    setViewEvent(null);
+  };
+
+  const handleDeleteEvent = async (eventId) => {
+    if (!eventId) return;
+    if (window.confirm("Bạn có chắc chắn muốn xóa sự kiện này?")) {
+      try {
+        const response = await communityService.deleteEvent(id, eventId);
+        if (response && response.success) {
+          await fetchEvents();
+        } else {
+          alert(
+            "Không thể xóa sự kiện: " +
+              (response?.message || "Lỗi không xác định"),
+          );
+        }
+      } catch (error) {
+        console.error("Error deleting event:", error);
+        alert("Lỗi khi xóa sự kiện");
+      }
+    }
+  };
+
   // History handlers
   const handleOpenHistoryEditor = () => {
     setEditingHistory(true);
@@ -363,6 +515,43 @@ const CommunityDetailPage = () => {
 
   const handleViewMember = (memberId) => {
     navigate(`/nu-tu/${memberId}`);
+  };
+
+  const handleExportExcel = () => {
+    if (!filteredEvents || filteredEvents.length === 0) {
+      alert("Không có dữ liệu để xuất");
+      return;
+    }
+
+    // 1. Define Headers
+    const headers = ["Ngày", "Sự kiện", "Chi tiết"];
+
+    // 2. Format Data
+    const csvContent = [
+      headers.join(","),
+      ...filteredEvents.map((event) => {
+        const date = new Date(event.event_date).toLocaleDateString("vi-VN");
+        // Escape quotes and wrap in quotes for CSV safety
+        const title = `"${(event.title || "").replace(/"/g, '""')}"`;
+        const desc = `"${(event.description || "").replace(/"/g, '""')}"`;
+        return [date, title, desc].join(",");
+      }),
+    ].join("\n");
+
+    // 3. Create Blob with BOM for UTF-8 (Critical for Vietnamese)
+    const blob = new Blob(["\uFEFF" + csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
+
+    // 4. Download
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `SuKien_${community?.code || "CongDoan"}_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   // PDF Document Component
@@ -544,7 +733,7 @@ const CommunityDetailPage = () => {
   const handleExportPDF = async () => {
     try {
       const blob = await pdf(
-        <CommunityPDFDocument community={community} members={members} />
+        <CommunityPDFDocument community={community} members={members} />,
       ).toBlob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -562,6 +751,16 @@ const CommunityDetailPage = () => {
       alert("Có lỗi khi xuất PDF. Vui lòng thử lại.");
     }
   };
+
+  // Filter events based on search
+  const filteredEvents = events.filter((event) => {
+    const searchLower = eventSearch.toLowerCase();
+    return (
+      event.title?.toLowerCase().includes(searchLower) ||
+      event.description?.toLowerCase().includes(searchLower) ||
+      formatDate(event.event_date).includes(searchLower)
+    );
+  });
 
   if (loading) {
     return (
@@ -729,6 +928,10 @@ const CommunityDetailPage = () => {
                     <i className="fas fa-users"></i>
                     Thành viên ({members.length})
                   </Nav.Link>
+                  <Nav.Link eventKey="community_events">
+                    <i className="fas fa-calendar-check"></i>
+                    Sự kiện
+                  </Nav.Link>
                   <Nav.Link eventKey="history">
                     <i className="fas fa-book"></i>
                     Lịch sử hình thành
@@ -830,8 +1033,8 @@ const CommunityDetailPage = () => {
                                     member.role === "superior"
                                       ? "danger"
                                       : member.role === "assistant"
-                                      ? "warning"
-                                      : "secondary"
+                                        ? "warning"
+                                        : "secondary"
                                   }
                                 >
                                   {getRoleLabel(member.role)}
@@ -856,6 +1059,186 @@ const CommunityDetailPage = () => {
                     ) : (
                       <div className="text-center py-5">
                         <p className="text-muted">Chưa có thành viên nào</p>
+                      </div>
+                    )}
+                  </Tab.Pane>
+
+                  <Tab.Pane eventKey="community_events">
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                      <h5 className="mb-0">
+                        <i className="fas fa-calendar-check me-2"></i>
+                        Sự kiện cộng đoàn
+                      </h5>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={handleOpenEventModal}
+                      >
+                        <i className="fas fa-plus me-2"></i>
+                        Thêm sự kiện
+                      </Button>
+                    </div>
+
+                    <div className="mb-3">
+                      <div className="d-flex justify-content-between align-items-center mb-0 gap-2">
+                        <div className="input-group flex-grow-1">
+                          <span className="input-group-text bg-white">
+                            <i className="fas fa-search text-muted"></i>
+                          </span>
+                          <Form.Control
+                            type="text"
+                            placeholder="Tìm kiếm sự kiện theo tên, mô tả hoặc ngày..."
+                            value={eventSearch}
+                            onChange={(e) => setEventSearch(e.target.value)}
+                          />
+                          {eventSearch && (
+                            <Button
+                              variant="outline-secondary"
+                              onClick={() => setEventSearch("")}
+                            >
+                              <i className="fas fa-times"></i>
+                            </Button>
+                          )}
+                        </div>
+                        <Button
+                          variant="success"
+                          onClick={handleExportExcel}
+                          disabled={!filteredEvents.length}
+                          title="Xuất file Excel"
+                          className="text-nowrap"
+                        >
+                          <i className="fas fa-file-excel me-2"></i>
+                          Xuất Excel
+                        </Button>
+                      </div>
+                    </div>
+
+                    {filteredEvents.length > 0 ? (
+                      <div className="table-responsive">
+                        <Table
+                          bordered
+                          hover
+                          striped
+                          size="sm"
+                          className="mb-0"
+                        >
+                          <thead className="table-light">
+                            <tr>
+                              <th
+                                className="text-center align-middle"
+                                style={{ width: "120px" }}
+                              >
+                                Ngày
+                              </th>
+                              <th
+                                className="align-middle"
+                                style={{ width: "30%" }}
+                              >
+                                Sự kiện
+                              </th>
+                              <th className="align-middle">Chi tiết</th>
+                              <th
+                                className="align-middle text-center"
+                                style={{ width: "100px" }}
+                              >
+                                Thao tác
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filteredEvents.map((event, index) => {
+                              let titleClass = "text-dark";
+                              let icon = "";
+
+                              switch (event.category) {
+                                case "arrival":
+                                  titleClass = "text-success";
+                                  icon = "fa-sign-in-alt";
+                                  break;
+                                case "departure":
+                                  titleClass = "text-danger";
+                                  icon = "fa-sign-out-alt";
+                                  break;
+                                case "education":
+                                  titleClass = "text-info";
+                                  icon = "fa-graduation-cap";
+                                  break;
+                                case "mission":
+                                  titleClass = "text-primary";
+                                  icon = "fa-cross";
+                                  break;
+                                case "health":
+                                  titleClass = "text-warning";
+                                  icon = "fa-heartbeat";
+                                  break;
+                                default:
+                                  icon = "fa-calendar-day";
+                              }
+
+                              return (
+                                <tr key={index}>
+                                  <td className="text-center align-middle">
+                                    {formatDate(event.event_date)}
+                                  </td>
+                                  <td className="align-middle">
+                                    <span
+                                      className={`fw-semibold ${titleClass}`}
+                                    >
+                                      {icon && (
+                                        <i className={`fas ${icon} me-2`}></i>
+                                      )}
+                                      {event.title}
+                                    </span>
+                                  </td>
+                                  <td className="align-middle text-secondary">
+                                    {event.description}
+                                  </td>
+                                  <td className="align-middle">
+                                    <div className="d-flex justify-content-center gap-2">
+                                      <Button
+                                        variant="outline-primary"
+                                        size="sm"
+                                        onClick={() => handleViewEvent(event)}
+                                        title="Xem chi tiết"
+                                      >
+                                        <i className="fas fa-eye"></i>
+                                      </Button>
+                                      <Button
+                                        variant="outline-danger"
+                                        size="sm"
+                                        onClick={() =>
+                                          handleDeleteEvent(event.id)
+                                        }
+                                        title="Xóa sự kiện"
+                                      >
+                                        <i className="fas fa-trash"></i>
+                                      </Button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </Table>
+                      </div>
+                    ) : (
+                      <div className="text-center py-5">
+                        {eventSearch ? (
+                          <>
+                            <p className="text-muted mb-2">
+                              Không tìm thấy sự kiện nào phù hợp với "
+                              {eventSearch}"
+                            </p>
+                            <Button
+                              variant="link"
+                              onClick={() => setEventSearch("")}
+                            >
+                              Xóa bộ lọc
+                            </Button>
+                          </>
+                        ) : (
+                          <p className="text-muted">Chưa có sự kiện nào</p>
+                        )}
                       </div>
                     )}
                   </Tab.Pane>
@@ -992,6 +1375,125 @@ const CommunityDetailPage = () => {
               <>
                 <i className="fas fa-save me-2"></i>Lưu
               </>
+            )}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* View Event Modal */}
+      <Modal
+        show={showViewEventModal}
+        onHide={handleCloseViewEventModal}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Chi tiết sự kiện</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {viewEvent && (
+            <div>
+              <div className="mb-3">
+                <label className="fw-bold text-muted small">Tên sự kiện</label>
+                <div className="fs-5">{viewEvent.title}</div>
+              </div>
+              <div className="mb-3">
+                <label className="fw-bold text-muted small">Ngày diễn ra</label>
+                <div>{formatDate(viewEvent.event_date)}</div>
+              </div>
+              <div className="mb-3">
+                <label className="fw-bold text-muted small">
+                  Mô tả chi tiết
+                </label>
+                <div className="p-2 bg-light rounded border">
+                  {viewEvent.description || (
+                    <span className="text-muted fst-italic">
+                      Không có mô tả
+                    </span>
+                  )}
+                </div>
+              </div>
+              {viewEvent.created_at && (
+                <div className="text-end text-muted small mt-4">
+                  Được tạo lúc:{" "}
+                  {new Date(viewEvent.created_at).toLocaleString("vi-VN")}
+                </div>
+              )}
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleCloseViewEventModal}>
+            Đóng
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Add Event Modal */}
+      <Modal show={showEventModal} onHide={handleCloseEventModal} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Thêm sự kiện mới</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>
+                Tên sự kiện <span className="text-danger">*</span>
+              </Form.Label>
+              <Form.Control
+                type="text"
+                value={newEvent.title}
+                onChange={(e) =>
+                  setNewEvent({ ...newEvent, title: e.target.value })
+                }
+                placeholder="Ví dụ: Lễ bổn mạng cộng đoàn"
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>
+                Ngày diễn ra <span className="text-danger">*</span>
+              </Form.Label>
+              <Form.Control
+                type="date"
+                value={newEvent.event_date}
+                onChange={(e) =>
+                  setNewEvent({ ...newEvent, event_date: e.target.value })
+                }
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Mô tả chi tiết</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                value={newEvent.description}
+                onChange={(e) =>
+                  setNewEvent({ ...newEvent, description: e.target.value })
+                }
+                placeholder="Nhập mô tả chi tiết về sự kiện..."
+              />
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={handleCloseEventModal}
+            disabled={addingEvent}
+          >
+            Hủy
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleAddEvent}
+            disabled={addingEvent}
+          >
+            {addingEvent ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2"></span>
+                Đang lưu...
+              </>
+            ) : (
+              "Thêm sự kiện"
             )}
           </Button>
         </Modal.Footer>
