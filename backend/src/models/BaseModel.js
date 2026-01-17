@@ -61,7 +61,7 @@ class BaseModel {
     }
 
     const sql = `SELECT * FROM ${this.tableName} WHERE ${clauses.join(
-      " AND "
+      " AND ",
     )} LIMIT 1`;
     const rows = await this.executeQuery(sql, params);
     return rows[0] || null;
@@ -76,7 +76,7 @@ class BaseModel {
     const placeholders = fields.map(() => "?").join(", ");
     const values = fields.map((field) => data[field]);
     const sql = `INSERT INTO ${this.tableName} (${fields.join(
-      ", "
+      ", ",
     )}) VALUES (${placeholders}) RETURNING *`;
     const rows = await this.executeQuery(sql, values);
     return rows[0] || null;
@@ -101,7 +101,7 @@ class BaseModel {
     }
 
     const sql = `UPDATE ${this.tableName} SET ${setClause} WHERE ${clauses.join(
-      " AND "
+      " AND ",
     )}`;
     await this.executeQuery(sql, [...values, id]);
     return this.findById(id);
@@ -126,7 +126,7 @@ class BaseModel {
   async executeQuery(sql, params = []) {
     const { query: pgQuery, params: pgParams } = convertPlaceholders(
       sql,
-      params
+      params,
     );
     const client = await pool.connect();
     try {
