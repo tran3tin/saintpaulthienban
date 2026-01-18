@@ -221,6 +221,8 @@ const CommunityDetailPage = () => {
   });
   const [addingEvent, setAddingEvent] = useState(false);
   const [eventSearch, setEventSearch] = useState("");
+  const [filterStartDate, setFilterStartDate] = useState("");
+  const [filterEndDate, setFilterEndDate] = useState("");
 
   // History states
   const [showHistoryModal, setShowHistoryModal] = useState(false);
@@ -755,6 +757,14 @@ const CommunityDetailPage = () => {
   // Filter events based on search
   const filteredEvents = events.filter((event) => {
     const searchLower = eventSearch.toLowerCase();
+
+    // Date Filtering
+    if (filterStartDate || filterEndDate) {
+      const dateStr = new Date(event.event_date).toISOString().split("T")[0];
+      if (filterStartDate && dateStr < filterStartDate) return false;
+      if (filterEndDate && dateStr > filterEndDate) return false;
+    }
+
     return (
       event.title?.toLowerCase().includes(searchLower) ||
       event.description?.toLowerCase().includes(searchLower) ||
@@ -1079,36 +1089,81 @@ const CommunityDetailPage = () => {
                       </Button>
                     </div>
 
-                    <div className="mb-3">
-                      <div className="d-flex justify-content-between align-items-center mb-0 gap-2">
-                        <div className="input-group flex-grow-1">
-                          <span className="input-group-text bg-white">
-                            <i className="fas fa-search text-muted"></i>
-                          </span>
-                          <Form.Control
-                            type="text"
-                            placeholder="Tìm kiếm sự kiện theo tên, mô tả hoặc ngày..."
-                            value={eventSearch}
-                            onChange={(e) => setEventSearch(e.target.value)}
-                          />
-                          {eventSearch && (
-                            <Button
-                              variant="outline-secondary"
-                              onClick={() => setEventSearch("")}
-                            >
-                              <i className="fas fa-times"></i>
-                            </Button>
-                          )}
-                        </div>
+                    <div className="mb-3 p-3 bg-light rounded border">
+                      <Row className="g-3">
+                        <Col md={3}>
+                          <Form.Group>
+                            <Form.Label className="small fw-bold">
+                              Từ ngày
+                            </Form.Label>
+                            <Form.Control
+                              type="date"
+                              value={filterStartDate}
+                              onChange={(e) =>
+                                setFilterStartDate(e.target.value)
+                              }
+                              size="sm"
+                            />
+                          </Form.Group>
+                        </Col>
+                        <Col md={3}>
+                          <Form.Group>
+                            <Form.Label className="small fw-bold">
+                              Đến ngày
+                            </Form.Label>
+                            <Form.Control
+                              type="date"
+                              value={filterEndDate}
+                              onChange={(e) => setFilterEndDate(e.target.value)}
+                              size="sm"
+                            />
+                          </Form.Group>
+                        </Col>
+                        <Col md={6}>
+                          <Form.Group>
+                            <Form.Label className="small fw-bold">
+                              Tìm kiếm
+                            </Form.Label>
+                            <div className="input-group input-group-sm">
+                              <span className="input-group-text bg-white">
+                                <i className="fas fa-search text-muted"></i>
+                              </span>
+                              <Form.Control
+                                type="text"
+                                placeholder="Tên, mô tả, ngày..."
+                                value={eventSearch}
+                                onChange={(e) => setEventSearch(e.target.value)}
+                              />
+                              {(eventSearch ||
+                                filterStartDate ||
+                                filterEndDate) && (
+                                <Button
+                                  variant="outline-secondary"
+                                  onClick={() => {
+                                    setEventSearch("");
+                                    setFilterStartDate("");
+                                    setFilterEndDate("");
+                                  }}
+                                  title="Xóa bộ lọc"
+                                >
+                                  <i className="fas fa-times"></i>
+                                </Button>
+                              )}
+                            </div>
+                          </Form.Group>
+                        </Col>
+                      </Row>
+                      <div className="mt-2 text-end">
                         <Button
                           variant="success"
                           onClick={handleExportExcel}
                           disabled={!filteredEvents.length}
                           title="Xuất file Excel"
                           className="text-nowrap"
+                          size="sm"
                         >
                           <i className="fas fa-file-excel me-2"></i>
-                          Xuất Excel
+                          Xuất Excel ({filteredEvents.length})
                         </Button>
                       </div>
                     </div>

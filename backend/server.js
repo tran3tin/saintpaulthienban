@@ -55,11 +55,11 @@ let isReady = false;
 let initError = null;
 
 app.get("/healthz", (req, res) => {
-  res.json({ 
-    status: "ok", 
+  res.json({
+    status: "ok",
     env: process.env.NODE_ENV || "development",
     ready: isReady,
-    initError: initError ? initError.message : null
+    initError: initError ? initError.message : null,
   });
 });
 
@@ -71,11 +71,12 @@ app.use(errorHandler);
 
 // Middleware to return 503 if not ready
 app.use((req, res, next) => {
-  if (!isReady && !req.path.startsWith('/healthz')) {
-    return res.status(503).json({ 
-      error: 'Service temporarily unavailable', 
-      code: 'SERVER_WARMING_UP',
-      message: 'Database initialization in progress. Please retry in a few seconds.'
+  if (!isReady && !req.path.startsWith("/healthz")) {
+    return res.status(503).json({
+      error: "Service temporarily unavailable",
+      code: "SERVER_WARMING_UP",
+      message:
+        "Database initialization in progress. Please retry in a few seconds.",
     });
   }
   next();
@@ -98,13 +99,13 @@ const server = app.listen(PORT, "0.0.0.0", () => {
   try {
     // Wait for DB connection with retries
     await db.waitForConnection();
-    
+
     // Run database migrations/initialization
     await initDatabase();
-    
+
     // Initialize Firebase Storage
     initializeFirebase();
-    
+
     isReady = true;
     console.log("✅ Server is fully ready to accept requests.");
   } catch (error) {
