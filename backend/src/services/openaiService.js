@@ -234,29 +234,34 @@ class OpenAIService {
       const analysisPrompt = `Phân tích câu hỏi của người dùng và trả về JSON với các trường sau:
 
 INTENT (chọn 1):
-- "sister_info": Hỏi về thông tin nữ tu cụ thể (tên, tuổi, ngày sinh, cộng đoàn...)
-- "community_info": Hỏi về cộng đoàn (danh sách, thông tin, thành viên...)
-- "statistics": Hỏi về số lượng, thống kê (bao nhiêu, mấy, tổng số...)
-- "journey_info": Hỏi về hành trình ơn gọi, giai đoạn tu (khấn, nhà tập...)
-- "education_info": Hỏi về học vấn, bằng cấp
+- "sister_info": Hỏi về thông tin nữ tu
+- "community_info": Hỏi về cộng đoàn
+- "statistics": Hỏi về số lượng, thống kê
+- "journey_info": Hỏi về hành trình ơn gọi
+- "education_info": Hỏi về học vấn
 - "health_info": Hỏi về sức khỏe
-- "mission_info": Hỏi về sứ vụ, công tác
-- "help": Hỏi cách sử dụng, hướng dẫn
-- "greeting": Chào hỏi đơn giản
-- "general": Câu hỏi chung khác
+- "mission_info": Hỏi về sứ vụ
+- "help": Hướng dẫn
+- "greeting": Chào hỏi
+- "general": Chung chung
 
-ENTITIES (trích xuất nếu có):
-- person_name: Tên người được hỏi (VD: "Nguyễn Thị Mai", "Maria", "sơ Tín")
-- community_name: Tên cộng đoàn (VD: "Sài Gòn", "Thủ Đức")
-- stage: Giai đoạn ơn gọi (inquiry, postulancy, novitiate, temporary_vows, perpetual_vows)
-- age_question: true nếu hỏi về tuổi
-- count_question: true nếu hỏi về số lượng
-- list_question: true nếu hỏi danh sách
+ENTITIES (trích xuất):
+- person_name: Tên người (VD: "Lan", "Maria Tín")
+- community_name: Tên cộng đoàn
+- stage: Giai đoạn ơn gọi
+- age_question: true/false
+- count_question: true/false
+- list_question: true/false
+
+SEARCH_KEYS (mảng các từ khóa quan trọng để tìm trong DB):
+- Trích xuất danh từ riêng, tên, địa danh, mã số... để query database.
+- VD: "chị Lan ở đâu?" -> ["Lan"]
+- VD: "cộng đoàn Thủ Đức có ai?" -> ["Thủ Đức"]
 
 Câu hỏi: "${userMessage}"
 
-Trả về CHÍNH XÁC JSON format (không markdown):
-{"intent":"...", "entities":{"person_name":"...", ...}, "keywords":["keyword1","keyword2"]}`;
+Trả về JSON:
+{"intent":"...", "entities":{...}, "search_keys":["..."], "keywords":["..."]}`;
 
       const completion = await this.client.chat.completions.create({
         model: this.model,
@@ -295,8 +300,9 @@ Trả về CHÍNH XÁC JSON format (không markdown):
         success: true,
         intent: analysis.intent || "general",
         entities: analysis.entities || {},
+        search_keys: analysis.search_keys || [],
         keywords: analysis.keywords || [],
-        confidence: 0.9, // AI analysis has high confidence
+        confidence: 0.9,
         source: "ai",
       };
     } catch (error) {

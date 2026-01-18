@@ -619,10 +619,16 @@ class ChatbotService {
     };
 
     try {
-      // If we have a specific sister_id, always get full sister info first
+      // 1. If we have a specific sister_id, always get full sister info first
       if (entities.sister_id) {
         context = await this.getFullSisterContext(entities);
-      } else {
+      } 
+      // 2. If we have AI-extracted search keys, prioritize global search
+      else if (analysis.search_keys && analysis.search_keys.length > 0) {
+         context = await this.getGlobalSearchContext(analysis.search_keys);
+      }
+      // 3. Fallback to strict intent handlers
+      else {
         switch (analysis.intent) {
           case "journey_info":
             context = await this.getJourneyContext(entities);
@@ -1547,6 +1553,136 @@ Bạn có thể hỏi tôi về thông tin nữ tu, hành trình ơn gọi, cộ
       contextText += "\n⚠️ Có một số thông tin không thể truy xuất.\n";
     }
 
+    return { text: contextText, data: {}, sources };
+  }
+
+  /**
+   * Global search across key tables using keywords (AI extracted)
+   * This enables the "logic" by providing broad data for the AI to synthesize.
+   */
+  async getGlobalSearchContext(searchKeys) {
+    let contextText = "";
+    const sources = [];
+    
+    try {
+      // Deduplicate keys
+      const uniqueKeys = [...new Set(searchKeys)].filter(k => k && k.length >= 2);
+      
+      if (uniqueKeys.length === 0) {
+         return { text: "Từ khóa tìm kiếm quá ngắn hoặc không hợp lệ.", data: {}, sources: [] };
+      }
+
+      for (const key of uniqueKeys) {
+        const searchTerm = `%${key}%`;
+        
+        // --- 1. Sisters ---
+        const [[sCountRes]] = await db.execute(
+           `SELECT COUNT(*) as count FROM sisters 
+            WHERE birth_name LIKE ? OR saint_name LIKE ? OR code LIKE ?`,
+           [searchTerm, searchTerm, searchTerm]
+        );
+
+        const [sisters] = await db.execute(
+          `SELECT id, birth_name, saint_name, code, status 
+           FROM sisters 
+           WHERE birth_name LIKE ? OR saint_name LIKE ? OR code LIKE ?
+           LIMIT 5`,
+           [searchTerm, searchTerm, searchTerm]
+        );
+        
+        if (sisters.length > 0) {
+          contextText += `👥 **Tìm thấy ${sCountRes.count} Nữ tu (liên quan "${key}"):**\n`;
+          for (const s of sisters) {
+             let statusText = s.status === 'left' ? ' (Đã tu xuất)' : '';
+             contextText += `- ${s.saint_name || ''} ${s.birth_name} (${s.code})${statusText}\n`;
+          }
+          if (sCountRes.count > 5) contextText += `... và ${sCountRes.count - 5} người khác.\n`;
+          contextText += '\n';
+        }
+
+        // --- 2. Communities ---
+        const [[cCountRes]] = await db.execute(
+            `SELECT COUNT(*) as count FROM communities 
+             WHERE name LIKE ? OR address LIKE ?`,
+             [searchTerm, searchTerm]
+        );
+
+        const [communities] = await db.execute(
+           `SELECT name, address, type FROM communities 
+            WHERE name LIKE ? OR address LIKE ? 
+            LIMIT 5`,
+            [searchTerm, searchTerm]
+        );
+        
+        if (communities.length > 0) {
+            contextText += `🏠 **Tìm thấy ${cCountRes.count} Cộng đoàn (liên quan "${key}"):**\n`;
+            for (const c of communities) {
+                contextText += `- ${c.name} (${c.address || 'Chưa cập nhật'})\n`;
+            }
+            if (cCountRes.count > 5) contextText += `... và ${cCountRes.count - 5} cộng đoàn khác.\n`;
+            contextText += '\n';
+        }
+        
+        // --- 3. Missions ---
+        const [[mCountRes]] = await db.execute(
+             `SELECT COUNT(*) as count FROM missions m
+              WHERE m.specific_role LIKE ? OR m.notes LIKE ? OR m.field LIKE ?`,
+             [searchTerm, searchTerm, searchTerm]
+        );
+
+        const [missions] = await db.execute(
+            `SELECT m.specific_role, m.field, m.notes, s.birth_name, s.saint_name 
+             FROM missions m
+             JOIN sisters s ON m.sister_id = s.id
+             WHERE m.specific_role LIKE ? OR m.notes LIKE ? OR m.field LIKE ?
+             LIMIT 5`,
+             [searchTerm, searchTerm, searchTerm]
+        );
+        
+        if (missions.length > 0) {
+            contextText += `💼 **Tìm thấy ${mCountRes.count} Sứ vụ (liên quan "${key}"):**\n`;
+             for (const m of missions) {
+                contextText += `- ${m.specific_role} (${m.field}) - ${m.saint_name || ''} ${m.birth_name}\n`;
+            }
+            if (mCountRes.count > 5) contextText += `... và ${mCountRes.count - 5} sứ vụ khác.\n`;
+            contextText += '\n';
+        }
+
+        // --- 4. Education ---
+        const [[eCountRes]] = await db.execute(
+             `SELECT COUNT(*) as count FROM education e
+              WHERE e.major LIKE ? OR e.institution LIKE ?`,
+              [searchTerm, searchTerm]
+        );
+
+        const [education] = await db.execute(
+            `SELECT e.major, e.institution, e.level, s.birth_name, s.saint_name
+             FROM education e
+             JOIN sisters s ON e.sister_id = s.id
+             WHERE e.major LIKE ? OR e.institution LIKE ?
+             LIMIT 5`,
+             [searchTerm, searchTerm]
+        );
+        
+        if (education.length > 0) {
+             contextText += `🎓 **Tìm thấy ${eCountRes.count} Hồ sơ học vấn (liên quan "${key}"):**\n`;
+             for (const e of education) {
+                contextText += `- ${e.level} ${e.major} tại ${e.institution} - ${e.saint_name || ''} ${e.birth_name}\n`;
+             }
+             if (eCountRes.count > 5) contextText += `... và ${eCountRes.count - 5} hồ sơ khác.\n`;
+             contextText += '\n';
+        }
+      }
+      
+      if (!contextText) {
+          contextText = "Không tìm thấy dữ liệu khớp với từ khóa trong cơ sở dữ liệu.";
+      }
+      
+    } catch (error) {
+        console.error("Global Search Error:", error);
+        contextText = "Lỗi khi tìm kiếm dữ liệu: " + error.message;
+    }
+    
     return { text: contextText, data: {}, sources };
   }
 
