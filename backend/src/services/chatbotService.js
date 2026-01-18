@@ -51,7 +51,7 @@ const vietnameseNormalize = {
             : Math.min(
                 matrix[i - 1][j - 1] + 1,
                 matrix[i][j - 1] + 1,
-                matrix[i - 1][j] + 1
+                matrix[i - 1][j] + 1,
               );
       }
     }
@@ -373,18 +373,18 @@ class ChatbotService {
     try {
       // Extract sister names from database with fuzzy matching
       const [sisters] = await db.execute(
-        "SELECT id, birth_name, saint_name, code FROM sisters"
+        "SELECT id, birth_name, saint_name, code FROM sisters",
       );
 
       // Sort sisters by name length (longest first) for better matching
       const sortedSisters = sisters.sort((a, b) => {
         const aLen = Math.max(
           (a.birth_name || "").length,
-          (a.saint_name || "").length
+          (a.saint_name || "").length,
         );
         const bLen = Math.max(
           (b.birth_name || "").length,
-          (b.saint_name || "").length
+          (b.saint_name || "").length,
         );
         return bLen - aLen;
       });
@@ -415,7 +415,7 @@ class ChatbotService {
         if (birthName) {
           const similarity = vietnameseNormalize.similarity(
             lowerMessage,
-            birthName
+            birthName,
           );
           if (similarity > 0.7 && similarity > bestSisterMatch.score) {
             bestSisterMatch = {
@@ -455,7 +455,7 @@ class ChatbotService {
 
       // Extract community names with fuzzy matching
       const [communities] = await db.execute(
-        "SELECT id, name, code FROM communities"
+        "SELECT id, name, code FROM communities",
       );
 
       let bestCommunityMatch = { id: null, score: 0, name: null };
@@ -480,7 +480,7 @@ class ChatbotService {
         // Check for partial community name
         const communityPattern = new RegExp(
           `cộng\\s*đoàn\\s+${name.replace(/cộng đoàn\\s*/i, "")}`,
-          "i"
+          "i",
         );
         if (communityPattern.test(message) && bestCommunityMatch.score < 0.9) {
           bestCommunityMatch = {
@@ -562,7 +562,7 @@ class ChatbotService {
 
       // Extract numbers for quantity queries
       const numberMatch = message.match(
-        /(\d+)\s*(người|nữ tu|chị|thành viên)/i
+        /(\d+)\s*(người|nữ tu|chị|thành viên)/i,
       );
       if (numberMatch) {
         entities.quantity = parseInt(numberMatch[1]);
@@ -570,7 +570,7 @@ class ChatbotService {
 
       // Extract age/age range
       const ageMatch = message.match(
-        /(\d+)\s*tuổi|tuổi\s*(\d+)|từ\s*(\d+)\s*đến\s*(\d+)\s*tuổi/i
+        /(\d+)\s*tuổi|tuổi\s*(\d+)|từ\s*(\d+)\s*đến\s*(\d+)\s*tuổi/i,
       );
       if (ageMatch) {
         entities.age = parseInt(ageMatch[1] || ageMatch[2] || ageMatch[3]);
@@ -622,10 +622,10 @@ class ChatbotService {
       // 1. If we have a specific sister_id, always get full sister info first
       if (entities.sister_id) {
         context = await this.getFullSisterContext(entities);
-      } 
+      }
       // 2. If we have AI-extracted search keys, prioritize global search
       else if (analysis.search_keys && analysis.search_keys.length > 0) {
-         context = await this.getGlobalSearchContext(analysis.search_keys);
+        context = await this.getGlobalSearchContext(analysis.search_keys);
       }
       // 3. Fallback to strict intent handlers
       else {
@@ -680,7 +680,7 @@ class ChatbotService {
          FROM sisters s
          LEFT JOIN communities c ON s.current_community_id = c.id
          WHERE s.id = ?`,
-        [entities.sister_id]
+        [entities.sister_id],
       );
 
       if (sisters.length > 0) {
@@ -693,7 +693,7 @@ class ChatbotService {
            LEFT JOIN journey_stages js ON vj.stage = js.code
            WHERE vj.sister_id = ?
            ORDER BY vj.start_date ASC`,
-          [entities.sister_id]
+          [entities.sister_id],
         );
 
         contextText = `📋 Hành trình ơn gọi của ${sister.saint_name || ""} ${
@@ -711,7 +711,7 @@ class ChatbotService {
           contextText += `📍 Các giai đoạn đã trải qua:\n`;
           journeys.forEach((journey, index) => {
             const startDate = new Date(journey.start_date).toLocaleDateString(
-              "vi-VN"
+              "vi-VN",
             );
             const endDate = journey.end_date
               ? new Date(journey.end_date).toLocaleDateString("vi-VN")
@@ -746,7 +746,7 @@ class ChatbotService {
          LEFT JOIN vocation_journey vj ON js.code = vj.stage AND vj.end_date IS NULL
          WHERE js.is_active = true
          GROUP BY js.id, js.name, js.code
-         ORDER BY js.display_order`
+         ORDER BY js.display_order`,
       );
 
       contextText = `📊 Thống kê hành trình ơn gọi hiện tại:\n\n`;
@@ -776,7 +776,7 @@ class ChatbotService {
          FROM sisters s
          LEFT JOIN communities c ON s.current_community_id = c.id
          WHERE s.id = ?`,
-        [entities.sister_id]
+        [entities.sister_id],
       );
 
       if (sisters.length === 0) {
@@ -833,7 +833,7 @@ class ChatbotService {
            LEFT JOIN journey_stages js ON vj.stage = js.code
            WHERE vj.sister_id = ?
            ORDER BY vj.start_date DESC`,
-          [entities.sister_id]
+          [entities.sister_id],
         );
 
         if (journeys.length > 0) {
@@ -878,7 +878,7 @@ class ChatbotService {
       try {
         const [educations] = await db.execute(
           `SELECT * FROM education WHERE sister_id = ? ORDER BY end_date DESC, start_date DESC`,
-          [entities.sister_id]
+          [entities.sister_id],
         );
 
         if (educations.length > 0) {
@@ -912,7 +912,7 @@ class ChatbotService {
            WHERE m.sister_id = ? 
            ORDER BY m.start_date DESC
            LIMIT 5`,
-          [entities.sister_id]
+          [entities.sister_id],
         );
 
         if (missions.length > 0) {
@@ -926,7 +926,7 @@ class ChatbotService {
             }
             if (mission.start_date) {
               const startDate = new Date(mission.start_date).toLocaleDateString(
-                "vi-VN"
+                "vi-VN",
               );
               const endDate = mission.end_date
                 ? new Date(mission.end_date).toLocaleDateString("vi-VN")
@@ -943,7 +943,7 @@ class ChatbotService {
       try {
         const [[healthSummary]] = await db.execute(
           `SELECT COUNT(*) as record_count FROM health_records WHERE sister_id = ?`,
-          [entities.sister_id]
+          [entities.sister_id],
         );
 
         if (healthSummary && healthSummary.record_count > 0) {
@@ -962,7 +962,7 @@ class ChatbotService {
            WHERE ca.sister_id = ?
            ORDER BY ca.start_date DESC
            LIMIT 5`,
-          [entities.sister_id]
+          [entities.sister_id],
         );
 
         if (assignments.length > 0) {
@@ -1012,7 +1012,7 @@ class ChatbotService {
          FROM sisters s
          LEFT JOIN communities c ON s.current_community_id = c.id
          WHERE s.id = ?`,
-        [entities.sister_id]
+        [entities.sister_id],
       );
 
       if (sisters.length > 0) {
@@ -1021,7 +1021,7 @@ class ChatbotService {
         // Get education
         const [educations] = await db.execute(
           "SELECT * FROM education WHERE sister_id = ? ORDER BY start_date DESC",
-          [sister.id]
+          [sister.id],
         );
 
         contextText = `👤 Thông tin chi tiết về ${sister.saint_name || ""} ${
@@ -1060,7 +1060,7 @@ class ChatbotService {
     } else {
       // General sister statistics
       const [[totalResult]] = await db.execute(
-        "SELECT COUNT(*) as total FROM sisters"
+        "SELECT COUNT(*) as total FROM sisters",
       );
 
       const [byCommunity] = await db.execute(
@@ -1068,7 +1068,7 @@ class ChatbotService {
          FROM communities c
          LEFT JOIN sisters s ON c.id = s.current_community_id
          GROUP BY c.id, c.name
-         ORDER BY count DESC`
+         ORDER BY count DESC`,
       );
 
       contextText = `👥 Thông tin chung về các nữ tu:\n\n`;
@@ -1098,7 +1098,7 @@ class ChatbotService {
                 (SELECT COUNT(*) FROM sisters s WHERE s.current_community_id = c.id) as member_count
          FROM communities c
          WHERE c.id = ?`,
-        [entities.community_id]
+        [entities.community_id],
       );
 
       if (communities.length > 0) {
@@ -1110,7 +1110,7 @@ class ChatbotService {
            FROM sisters
            WHERE current_community_id = ?
            ORDER BY birth_name`,
-          [community.id]
+          [community.id],
         );
 
         contextText = `🏠 Thông tin cộng đoàn ${community.name}:\n\n`;
@@ -1137,7 +1137,7 @@ class ChatbotService {
         `SELECT c.*, 
                 (SELECT COUNT(*) FROM sisters s WHERE s.current_community_id = c.id) as member_count
          FROM communities c
-         ORDER BY c.name`
+         ORDER BY c.name`,
       );
 
       contextText = `🏠 Danh sách các cộng đoàn:\n\n`;
@@ -1161,11 +1161,11 @@ class ChatbotService {
    */
   async getStatisticsContext(entities) {
     const [[totalSisters]] = await db.execute(
-      "SELECT COUNT(*) as count FROM sisters"
+      "SELECT COUNT(*) as count FROM sisters",
     );
 
     const [[totalCommunities]] = await db.execute(
-      "SELECT COUNT(*) as count FROM communities"
+      "SELECT COUNT(*) as count FROM communities",
     );
 
     const [byStage] = await db.execute(
@@ -1173,7 +1173,7 @@ class ChatbotService {
        FROM journey_stages js
        LEFT JOIN vocation_journey vj ON js.code = vj.stage AND vj.end_date IS NULL
        GROUP BY js.id, js.name
-       ORDER BY js.display_order`
+       ORDER BY js.display_order`,
     );
 
     const [recentJourneys] = await db.execute(
@@ -1182,7 +1182,7 @@ class ChatbotService {
        JOIN sisters s ON vj.sister_id = s.id
        LEFT JOIN journey_stages js ON vj.stage = js.code
        ORDER BY vj.created_at DESC
-       LIMIT 5`
+       LIMIT 5`,
     );
 
     let contextText = `📊 Thống kê tổng quan hệ thống:\n\n`;
@@ -1230,7 +1230,7 @@ class ChatbotService {
          JOIN sisters s ON e.sister_id = s.id
          WHERE e.sister_id = ?
          ORDER BY e.start_date DESC`,
-        [entities.sister_id]
+        [entities.sister_id],
       );
 
       if (educations.length > 0) {
@@ -1264,7 +1264,7 @@ class ChatbotService {
         `SELECT degree, COUNT(*) as count
          FROM education
          GROUP BY degree
-         ORDER BY count DESC`
+         ORDER BY count DESC`,
       );
 
       contextText = `📚 Thống kê học vấn:\n\n`;
@@ -1323,11 +1323,11 @@ Bạn có thể hỏi tôi về:
    */
   async getGeneralContext() {
     const [[totalSisters]] = await db.execute(
-      "SELECT COUNT(*) as count FROM sisters"
+      "SELECT COUNT(*) as count FROM sisters",
     );
 
     const [[totalCommunities]] = await db.execute(
-      "SELECT COUNT(*) as count FROM communities"
+      "SELECT COUNT(*) as count FROM communities",
     );
 
     const contextText = `📋 Thông tin hệ thống:
@@ -1369,7 +1369,7 @@ Bạn có thể hỏi tôi về thông tin nữ tu, hành trình ơn gọi, cộ
           `%${searchName}%`,
           `%${normalizedName}%`,
           `%${normalizedName}%`,
-        ]
+        ],
       );
 
       if (sisters.length === 0) {
@@ -1382,7 +1382,7 @@ Bạn có thể hỏi tôi về thông tin nữ tu, hành trình ơn gọi, cộ
            FROM sisters 
            WHERE LOWER(birth_name) LIKE ?
            LIMIT 5`,
-          [`%${lastName}`]
+          [`%${lastName}`],
         );
 
         if (byLastName.length > 0) {
@@ -1393,7 +1393,7 @@ Bạn có thể hỏi tôi về thông tin nữ tu, hành trình ơn gọi, cộ
           for (const sister of byLastName) {
             const similarity = vietnameseNormalize.similarity(
               searchName,
-              sister.birth_name
+              sister.birth_name,
             );
             if (similarity > bestScore && similarity > 0.5) {
               bestScore = similarity;
@@ -1414,11 +1414,11 @@ Bạn có thể hỏi tôi về thông tin nữ tu, hành trình ơn gọi, cộ
       for (const sister of sisters) {
         const birthNameSimilarity = vietnameseNormalize.similarity(
           searchName,
-          sister.birth_name || ""
+          sister.birth_name || "",
         );
         const saintNameSimilarity = vietnameseNormalize.similarity(
           searchName,
-          sister.saint_name || ""
+          sister.saint_name || "",
         );
         const score = Math.max(birthNameSimilarity, saintNameSimilarity);
 
@@ -1446,10 +1446,10 @@ Bạn có thể hỏi tôi về thông tin nữ tu, hành trình ơn gọi, cộ
     try {
       // 1. Always include basic statistics
       const [[totalSisters]] = await db.execute(
-        "SELECT COUNT(*) as count FROM sisters"
+        "SELECT COUNT(*) as count FROM sisters",
       );
       const [[totalCommunities]] = await db.execute(
-        "SELECT COUNT(*) as count FROM communities"
+        "SELECT COUNT(*) as count FROM communities",
       );
 
       contextText = `📊 **Thông tin hệ thống:**\n`;
@@ -1462,7 +1462,7 @@ Bạn có thể hỏi tôi về thông tin nữ tu, hành trình ơn gọi, cộ
           `SELECT c.*, 
                   (SELECT COUNT(*) FROM sisters s WHERE s.current_community_id = c.id) as member_count
            FROM communities c
-           ORDER BY c.name`
+           ORDER BY c.name`,
         );
 
         contextText += `🏠 **Danh sách ${communities.length} cộng đoàn:**\n\n`;
@@ -1487,7 +1487,7 @@ Bạn có thể hỏi tôi về thông tin nữ tu, hành trình ơn gọi, cộ
            LEFT JOIN sisters s ON c.id = s.current_community_id
            GROUP BY c.id, c.name
            HAVING count > 0
-           ORDER BY count DESC`
+           ORDER BY count DESC`,
         );
 
         contextText += `👥 **Phân bổ nữ tu theo cộng đoàn:**\n`;
@@ -1505,7 +1505,7 @@ Bạn có thể hỏi tôi về thông tin nữ tu, hành trình ơn gọi, cộ
            LEFT JOIN vocation_journey vj ON js.code = vj.stage AND vj.end_date IS NULL
            WHERE js.is_active = true
            GROUP BY js.id, js.name
-           ORDER BY js.display_order`
+           ORDER BY js.display_order`,
         );
 
         contextText += `📍 **Phân bổ theo giai đoạn ơn gọi:**\n`;
@@ -1526,7 +1526,7 @@ Bạn có thể hỏi tôi về thông tin nữ tu, hành trình ơn gọi, cộ
       if (/tuổi|age|năm sinh|sinh năm/i.test(message) && entities.sister_id) {
         const [sisters] = await db.execute(
           `SELECT birth_name, saint_name, date_of_birth FROM sisters WHERE id = ?`,
-          [entities.sister_id]
+          [entities.sister_id],
         );
 
         if (sisters.length > 0 && sisters[0].date_of_birth) {
@@ -1563,23 +1563,29 @@ Bạn có thể hỏi tôi về thông tin nữ tu, hành trình ơn gọi, cộ
   async getGlobalSearchContext(searchKeys) {
     let contextText = "";
     const sources = [];
-    
+
     try {
       // Deduplicate keys
-      const uniqueKeys = [...new Set(searchKeys)].filter(k => k && k.length >= 2);
-      
+      const uniqueKeys = [...new Set(searchKeys)].filter(
+        (k) => k && k.length >= 2,
+      );
+
       if (uniqueKeys.length === 0) {
-         return { text: "Từ khóa tìm kiếm quá ngắn hoặc không hợp lệ.", data: {}, sources: [] };
+        return {
+          text: "Từ khóa tìm kiếm quá ngắn hoặc không hợp lệ.",
+          data: {},
+          sources: [],
+        };
       }
 
       for (const key of uniqueKeys) {
         const searchTerm = `%${key}%`;
-        
+
         // --- 1. Sisters ---
         const [[sCountRes]] = await db.execute(
-           `SELECT COUNT(*) as count FROM sisters 
+          `SELECT COUNT(*) as count FROM sisters 
             WHERE birth_name LIKE ? OR saint_name LIKE ? OR code LIKE ?`,
-           [searchTerm, searchTerm, searchTerm]
+          [searchTerm, searchTerm, searchTerm],
         );
 
         const [sisters] = await db.execute(
@@ -1587,102 +1593,106 @@ Bạn có thể hỏi tôi về thông tin nữ tu, hành trình ơn gọi, cộ
            FROM sisters 
            WHERE birth_name LIKE ? OR saint_name LIKE ? OR code LIKE ?
            LIMIT 5`,
-           [searchTerm, searchTerm, searchTerm]
+          [searchTerm, searchTerm, searchTerm],
         );
-        
+
         if (sisters.length > 0) {
           contextText += `👥 **Tìm thấy ${sCountRes.count} Nữ tu (liên quan "${key}"):**\n`;
           for (const s of sisters) {
-             let statusText = s.status === 'left' ? ' (Đã tu xuất)' : '';
-             contextText += `- ${s.saint_name || ''} ${s.birth_name} (${s.code})${statusText}\n`;
+            let statusText = s.status === "left" ? " (Đã tu xuất)" : "";
+            contextText += `- ${s.saint_name || ""} ${s.birth_name} (${s.code})${statusText}\n`;
           }
-          if (sCountRes.count > 5) contextText += `... và ${sCountRes.count - 5} người khác.\n`;
-          contextText += '\n';
+          if (sCountRes.count > 5)
+            contextText += `... và ${sCountRes.count - 5} người khác.\n`;
+          contextText += "\n";
         }
 
         // --- 2. Communities ---
         const [[cCountRes]] = await db.execute(
-            `SELECT COUNT(*) as count FROM communities 
+          `SELECT COUNT(*) as count FROM communities 
              WHERE name LIKE ? OR address LIKE ?`,
-             [searchTerm, searchTerm]
+          [searchTerm, searchTerm],
         );
 
         const [communities] = await db.execute(
-           `SELECT name, address, type FROM communities 
+          `SELECT name, address, type FROM communities 
             WHERE name LIKE ? OR address LIKE ? 
             LIMIT 5`,
-            [searchTerm, searchTerm]
+          [searchTerm, searchTerm],
         );
-        
+
         if (communities.length > 0) {
-            contextText += `🏠 **Tìm thấy ${cCountRes.count} Cộng đoàn (liên quan "${key}"):**\n`;
-            for (const c of communities) {
-                contextText += `- ${c.name} (${c.address || 'Chưa cập nhật'})\n`;
-            }
-            if (cCountRes.count > 5) contextText += `... và ${cCountRes.count - 5} cộng đoàn khác.\n`;
-            contextText += '\n';
+          contextText += `🏠 **Tìm thấy ${cCountRes.count} Cộng đoàn (liên quan "${key}"):**\n`;
+          for (const c of communities) {
+            contextText += `- ${c.name} (${c.address || "Chưa cập nhật"})\n`;
+          }
+          if (cCountRes.count > 5)
+            contextText += `... và ${cCountRes.count - 5} cộng đoàn khác.\n`;
+          contextText += "\n";
         }
-        
+
         // --- 3. Missions ---
         const [[mCountRes]] = await db.execute(
-             `SELECT COUNT(*) as count FROM missions m
+          `SELECT COUNT(*) as count FROM missions m
               WHERE m.specific_role LIKE ? OR m.notes LIKE ? OR m.field LIKE ?`,
-             [searchTerm, searchTerm, searchTerm]
+          [searchTerm, searchTerm, searchTerm],
         );
 
         const [missions] = await db.execute(
-            `SELECT m.specific_role, m.field, m.notes, s.birth_name, s.saint_name 
+          `SELECT m.specific_role, m.field, m.notes, s.birth_name, s.saint_name 
              FROM missions m
              JOIN sisters s ON m.sister_id = s.id
              WHERE m.specific_role LIKE ? OR m.notes LIKE ? OR m.field LIKE ?
              LIMIT 5`,
-             [searchTerm, searchTerm, searchTerm]
+          [searchTerm, searchTerm, searchTerm],
         );
-        
+
         if (missions.length > 0) {
-            contextText += `💼 **Tìm thấy ${mCountRes.count} Sứ vụ (liên quan "${key}"):**\n`;
-             for (const m of missions) {
-                contextText += `- ${m.specific_role} (${m.field}) - ${m.saint_name || ''} ${m.birth_name}\n`;
-            }
-            if (mCountRes.count > 5) contextText += `... và ${mCountRes.count - 5} sứ vụ khác.\n`;
-            contextText += '\n';
+          contextText += `💼 **Tìm thấy ${mCountRes.count} Sứ vụ (liên quan "${key}"):**\n`;
+          for (const m of missions) {
+            contextText += `- ${m.specific_role} (${m.field}) - ${m.saint_name || ""} ${m.birth_name}\n`;
+          }
+          if (mCountRes.count > 5)
+            contextText += `... và ${mCountRes.count - 5} sứ vụ khác.\n`;
+          contextText += "\n";
         }
 
         // --- 4. Education ---
         const [[eCountRes]] = await db.execute(
-             `SELECT COUNT(*) as count FROM education e
+          `SELECT COUNT(*) as count FROM education e
               WHERE e.major LIKE ? OR e.institution LIKE ?`,
-              [searchTerm, searchTerm]
+          [searchTerm, searchTerm],
         );
 
         const [education] = await db.execute(
-            `SELECT e.major, e.institution, e.level, s.birth_name, s.saint_name
+          `SELECT e.major, e.institution, e.level, s.birth_name, s.saint_name
              FROM education e
              JOIN sisters s ON e.sister_id = s.id
              WHERE e.major LIKE ? OR e.institution LIKE ?
              LIMIT 5`,
-             [searchTerm, searchTerm]
+          [searchTerm, searchTerm],
         );
-        
+
         if (education.length > 0) {
-             contextText += `🎓 **Tìm thấy ${eCountRes.count} Hồ sơ học vấn (liên quan "${key}"):**\n`;
-             for (const e of education) {
-                contextText += `- ${e.level} ${e.major} tại ${e.institution} - ${e.saint_name || ''} ${e.birth_name}\n`;
-             }
-             if (eCountRes.count > 5) contextText += `... và ${eCountRes.count - 5} hồ sơ khác.\n`;
-             contextText += '\n';
+          contextText += `🎓 **Tìm thấy ${eCountRes.count} Hồ sơ học vấn (liên quan "${key}"):**\n`;
+          for (const e of education) {
+            contextText += `- ${e.level} ${e.major} tại ${e.institution} - ${e.saint_name || ""} ${e.birth_name}\n`;
+          }
+          if (eCountRes.count > 5)
+            contextText += `... và ${eCountRes.count - 5} hồ sơ khác.\n`;
+          contextText += "\n";
         }
       }
-      
+
       if (!contextText) {
-          contextText = "Không tìm thấy dữ liệu khớp với từ khóa trong cơ sở dữ liệu.";
+        contextText =
+          "Không tìm thấy dữ liệu khớp với từ khóa trong cơ sở dữ liệu.";
       }
-      
     } catch (error) {
-        console.error("Global Search Error:", error);
-        contextText = "Lỗi khi tìm kiếm dữ liệu: " + error.message;
+      console.error("Global Search Error:", error);
+      contextText = "Lỗi khi tìm kiếm dữ liệu: " + error.message;
     }
-    
+
     return { text: contextText, data: {}, sources };
   }
 

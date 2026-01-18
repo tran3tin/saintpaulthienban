@@ -36,6 +36,12 @@ app.use(
   express.static(path.join(__dirname, "src", "uploads")),
 );
 
+// ✅ Endpoint cho UptimeRobot (Keep-Alive)
+// Trả về response siêu nhẹ để giữ Render không ngủ đông
+app.get("/ping", (req, res) => {
+  res.status(200).send("pong");
+});
+
 app.use(express.static(path.join(__dirname, "frontend")));
 
 // Attach all API routes
