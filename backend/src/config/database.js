@@ -121,10 +121,10 @@ pool.getConnection = async function () {
   return await pool.connect();
 };
 
-// Test connection with retry logic for cold starts
-(async () => {
-  const maxRetries = 3;
-  const retryDelayMs = 2000;
+// Export function to test connection with retry logic (called from server startup)
+const waitForConnection = async () => {
+  const maxRetries = 5;
+  const retryDelayMs = 5000;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -134,7 +134,7 @@ pool.getConnection = async function () {
       console.log("✅ PostgreSQL connection pool established successfully.");
       console.log("📅 Server time:", result.rows[0].now);
       client.release();
-      return; // Success - exit retry loop
+      return true;
     } catch (error) {
       console.error(
         `❌ Database connection attempt ${attempt} failed:`,
@@ -145,13 +145,11 @@ pool.getConnection = async function () {
         console.log(`⏳ Retrying in ${retryDelayMs / 1000} seconds...`);
         await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
       } else {
-        console.error(
-          "❌ Failed to connect to database after all retries. Server will continue but database operations may fail.",
-        );
-        // Don't throw - let server start anyway (will fail gracefully on actual queries)
+        throw new Error(`Failed to connect to database after ${maxRetries} attempts`);
       }
     }
   }
-})();
+};
 
 module.exports = pool;
+module.exports.waitForConnection = waitForConnection;

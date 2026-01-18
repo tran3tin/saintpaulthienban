@@ -33,7 +33,7 @@ app.use(
     res.setHeader("Access-Control-Allow-Origin", "*");
     next();
   },
-  express.static(path.join(__dirname, "src", "uploads"))
+  express.static(path.join(__dirname, "src", "uploads")),
 );
 
 app.use(express.static(path.join(__dirname, "frontend")));
@@ -44,8 +44,17 @@ app.get("/", (req, res) => {
   res.send("OK");
 });
 
+// Readiness gate
+let isReady = false;
+let initError = null;
+
 app.get("/healthz", (req, res) => {
-  res.json({ status: "ok", env: process.env.NODE_ENV || "development" });
+  res.json({ 
+    status: "ok", 
+    env: process.env.NODE_ENV || "development",
+    ready: isReady,
+    initError: initError ? initError.message : null
+  });
 });
 
 registerRoutes(app);
@@ -54,33 +63,47 @@ registerRoutes(app);
 app.use(notFound);
 app.use(errorHandler);
 
-// Verify DB connectivity before accepting requests
-const startServer = async () => {
-  try {
-    const connection = await db.getConnection();
-    connection.release();
-    console.log("Database connection verified successfully.");
+// Middleware to return 503 if not ready
+app.use((req, res, next) => {
+  if (!isReady && !req.path.startsWith('/healthz')) {
+    return res.status(503).json({ 
+      error: 'Service temporarily unavailable', 
+      code: 'SERVER_WARMING_UP',
+      message: 'Database initialization in progress. Please retry in a few seconds.'
+    });
+  }
+  next();
+});
 
+// Start server immediately to satisfy Render port binding requirement
+const PORT = process.env.PORT || 8080;
+
+const server = app.listen(PORT, "0.0.0.0", () => {
+  console.log(
+    `🚀 Server listening on port ${PORT} (env: ${
+      process.env.NODE_ENV || "development"
+    })`,
+  );
+  console.log("⏳ Initializing database and services in background...");
+});
+
+// Initialize database and services in background
+(async () => {
+  try {
+    // Wait for DB connection with retries
+    await db.waitForConnection();
+    
     // Run database migrations/initialization
     await initDatabase();
-
-    // Initialize Firebase Storage (will log warnings if not configured)
+    
+    // Initialize Firebase Storage
     initializeFirebase();
-
-    // Get PORT right before starting server to ensure env vars are ready
-    const PORT = process.env.PORT || 8080;
-
-    app.listen(PORT, "0.0.0.0", () => {
-      console.log(
-        `HR Records Management API listening on port ${PORT} (env: ${
-          process.env.NODE_ENV || "development"
-        })`
-      );
-    });
+    
+    isReady = true;
+    console.log("✅ Server is fully ready to accept requests.");
   } catch (error) {
-    console.error("Failed to start server:", error.message);
-    process.exit(1);
+    console.error("❌ Initialization failed:", error.message);
+    initError = error;
+    // Don't exit - let server run in degraded mode for debugging
   }
-};
-
-startServer();
+})();

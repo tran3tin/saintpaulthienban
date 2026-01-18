@@ -27,9 +27,11 @@ const uploadToLocal = async (file, folder = "documents") => {
 
     // Return URL relative to server root
     // server.js serves /uploads mapped to src/uploads
-    const baseUrl = process.env.NODE_ENV === 'production' 
-      ? (process.env.BACKEND_URL || 'https://saintpaulthienban-backend.onrender.com')
-      : 'http://localhost:5000';
+    const baseUrl =
+      process.env.NODE_ENV === "production"
+        ? process.env.BACKEND_URL ||
+          "https://saintpaulthienban-backend.onrender.com"
+        : "http://localhost:5000";
     const fullUrl = `${baseUrl}/uploads/${folder}/${fileName}`;
 
     console.log("✅ File saved locally:", fullUrl);
@@ -51,7 +53,9 @@ const uploadToFirebase = async (file, folder = "osp_uploads") => {
     const bucket = getBucket();
 
     if (!bucket) {
-      throw new Error("Firebase Storage not initialized. Check FIREBASE_SERVICE_ACCOUNT and FIREBASE_STORAGE_BUCKET environment variables.");
+      throw new Error(
+        "Firebase Storage not initialized. Check FIREBASE_SERVICE_ACCOUNT and FIREBASE_STORAGE_BUCKET environment variables.",
+      );
     }
 
     if (!file) {
