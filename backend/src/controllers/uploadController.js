@@ -3,7 +3,7 @@ const path = require("path");
 const fs = require("fs");
 
 // Helper to save file locally
-const uploadToLocal = async (file, folder = "documents", req = null) => {
+const uploadToLocal = async (file, folder = "documents") => {
   try {
     // Generate unique filename
     const fileExtension = path.extname(file.originalname);
@@ -26,13 +26,10 @@ const uploadToLocal = async (file, folder = "documents", req = null) => {
     await fs.promises.writeFile(filePath, file.buffer);
 
     // Return URL relative to server root
-    let baseUrl = "http://localhost:5000";
-    if (req) {
-      const protocol = req.headers["x-forwarded-proto"] || req.protocol;
-      const host = req.get("host");
-      baseUrl = `${protocol}://${host}`;
-    }
-
+    // server.js serves /uploads mapped to src/uploads
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? (process.env.BACKEND_URL || 'https://saintpaulthienban-backend.onrender.com')
+      : 'http://localhost:5000';
     const fullUrl = `${baseUrl}/uploads/${folder}/${fileName}`;
 
     console.log("✅ File saved locally:", fullUrl);
@@ -54,7 +51,7 @@ const uploadToFirebase = async (file, folder = "osp_uploads") => {
     const bucket = getBucket();
 
     if (!bucket) {
-      throw new Error("Firebase Storage not initialized");
+      throw new Error("Firebase Storage not initialized. Check FIREBASE_SERVICE_ACCOUNT and FIREBASE_STORAGE_BUCKET environment variables.");
     }
 
     if (!file) {
@@ -109,24 +106,16 @@ const uploadToFirebase = async (file, folder = "osp_uploads") => {
 };
 
 // Wrapper to handle upload strategy (Firebase -> Local Fallback)
-const processFileUpload = async (file, req = null) => {
+const processFileUpload = async (file) => {
   try {
     // Try Firebase first
     return await uploadToFirebase(file);
   } catch (error) {
-    const errorMsg = error.message || "Unknown error";
-    // Check for specific firebase errors to warn user
-    if (errorMsg.includes("bucket does not exist")) {
-      console.error(
-        "❌ CRITICAL FIREBASE ERROR: The Storage Bucket does not exist. Check your FIREBASE_STORAGE_BUCKET env var or create the bucket in Firebase Console.",
-      );
-    }
-
     console.warn(
-      `⚠️ Firebase upload failed (${errorMsg}). Falling back to local storage.`,
+      `⚠️ Firebase upload failed (${error.message}). Falling back to local storage.`,
     );
     // Fallback to local
-    return await uploadToLocal(file, "documents", req);
+    return await uploadToLocal(file);
   }
 };
 
@@ -137,7 +126,7 @@ const uploadFile = async (req, res) => {
       return res.status(400).json({ message: "Vui lòng chọn file!" });
     }
 
-    const result = await processFileUpload(req.file, req);
+    const result = await processFileUpload(req.file);
 
     res.status(200).json({
       message: "Upload thành công",
@@ -157,9 +146,7 @@ const uploadMultipleFiles = async (req, res) => {
       return res.status(400).json({ message: "Vui lòng chọn file!" });
     }
 
-    const uploadPromises = req.files.map((file) =>
-      processFileUpload(file, req),
-    );
+    const uploadPromises = req.files.map((file) => processFileUpload(file));
     const results = await Promise.all(uploadPromises);
 
     res.status(200).json({

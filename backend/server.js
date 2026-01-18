@@ -10,6 +10,7 @@ const { notFound, errorHandler } = require("./src/middlewares/errorHandler");
 const { applySecurityMiddlewares } = require("./src/middlewares/security");
 const db = require("./src/config/database");
 const { initDatabase } = require("./src/config/initDatabase");
+const { initializeFirebase } = require("./src/config/firebase");
 
 const app = express();
 
@@ -62,6 +63,9 @@ const startServer = async () => {
 
     // Run database migrations/initialization
     await initDatabase();
+
+    // Initialize Firebase Storage (will log warnings if not configured)
+    initializeFirebase();
 
     // Get PORT right before starting server to ensure env vars are ready
     const PORT = process.env.PORT || 8080;

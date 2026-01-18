@@ -19,14 +19,6 @@ const initializeFirebase = () => {
       // Remove potential whitespace or quotes wrapping the JSON
       const rawEnv = process.env.FIREBASE_SERVICE_ACCOUNT.trim();
       serviceAccount = JSON.parse(rawEnv);
-
-      // Fix for Private Key newlines (common issue with .env and JSON)
-      if (serviceAccount.private_key) {
-        serviceAccount.private_key = serviceAccount.private_key.replace(
-          /\\n/g,
-          "\n",
-        );
-      }
     } catch (e) {
       console.error(
         "❌ Error parsing FIREBASE_SERVICE_ACCOUNT JSON:",
